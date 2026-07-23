@@ -1,0 +1,19 @@
+name: Keep Render backend warm
+
+# Pings the backend's /health endpoint every 10 minutes, 8am-8pm WAT
+# (07:00-18:50 UTC), Saturday through Tuesday only — the app's active
+# window. Outside this window the backend is free to spin down on
+# Render's free tier; real user traffic wakes it on demand as usual,
+# and it also resets Render's own idle timer, so this ping never
+# fights with real usage.
+on:
+  schedule:
+    - cron: "*/10 7-18 * * 6,0,1,2"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend health endpoint
+        run: curl -fsS --max-time 30 https://the-supernaturals.onrender.com/health
