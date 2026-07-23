@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 from validator import validate_image
 from gemini_client import generate_supernatural_image, IMAGE_GENERATION_MODELS
 from scene_prompts import has_scene, get_active_scene_id, get_scene_schedule
-from storage import check_rate_limit, record_generation
+from storage import check_rate_limit, record_generation, get_quota, DAILY_LIMIT
 
 load_dotenv()
 
@@ -83,6 +83,13 @@ async def active_scene():
     }
 
 
+@app.get("/quota")
+async def quota(request: Request):
+    """How many generations the caller's IP has left today (for the UI)."""
+    client_ip = request.client.host if request.client else "unknown"
+    return await get_quota(client_ip)
+
+
 @app.get("/debug/gemini")
 async def debug_gemini():
     """Lists all available models and highlights image-generation capable ones."""
@@ -124,7 +131,12 @@ async def generate(
             message = f"Please wait {retry_after} seconds before generating again."
         raise HTTPException(
             status_code=429,
-            detail={"success": False, "error": limit_error, "message": message},
+            detail={
+                "success": False,
+                "error": limit_error,
+                "message": message,
+                "quota": await get_quota(client_ip),
+            },
         )
 
     # Validate scene_id up front (before reading large image)
@@ -228,4 +240,5 @@ async def generate(
         "submission_id": str(uuid.uuid4()),
         "image_url": data_url,
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        "quota": await get_quota(client_ip),
     }

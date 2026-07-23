@@ -32,6 +32,7 @@ export default function Upload({ onResult, onBack }) {
   const [error, setError] = useState(null)
   const [selectedScene, setSelectedScene] = useState(null)
   const [activeScene, setActiveScene] = useState(null) // { active_scene_id, schedule } from /active-scene
+  const [quota, setQuota] = useState(null) // { used, limit, remaining, cooldown_remaining } from /quota
   const [customPrompt, setCustomPrompt] = useState('')
   const fileInputRef = useRef(null)
   const progressTimerRef = useRef(null)
@@ -46,7 +47,15 @@ export default function Upload({ onResult, onBack }) {
         // Backend still enforces the active scene — the picker just falls
         // back to showing every scene unlocked if this call fails.
       })
+
+    axios.get(`${API_URL}/quota`)
+      .then(({ data }) => setQuota(data))
+      .catch(() => {
+        // Quota badge just won't show if this fails — backend still enforces it.
+      })
   }, [])
+
+  const outOfQuota = quota && quota.remaining <= 0
 
   const handleFile = (file) => {
     if (!file) return
@@ -106,6 +115,7 @@ export default function Upload({ onResult, onBack }) {
         timeout: 120_000,
       })
       stopProgressCycle()
+      if (data.quota) setQuota(data.quota)
       onResult({ ...data })
     } catch (err) {
       stopProgressCycle()
@@ -121,6 +131,7 @@ export default function Upload({ onResult, onBack }) {
             msg += `\n\nDebug: ${debug}`
           }
         }
+        if (detail.quota) setQuota(detail.quota)
       } else {
         msg = detail || 'Something went wrong. Please try again.'
       }
@@ -142,6 +153,40 @@ export default function Upload({ onResult, onBack }) {
         <p className="text-divine-500 text-xs tracking-widest uppercase font-semibold mb-1">The SuperNaturals 2026</p>
         <h2 className="font-display text-3xl font-bold text-white">Create Your Portrait</h2>
         <p className="text-slate-400 text-sm mt-1">Upload your photo and receive your supernatural image.</p>
+
+        {/* Daily quota badge */}
+        {quota && (
+          <div
+            className={`mt-4 flex items-center gap-2.5 rounded-xl border px-4 py-3 ${
+              outOfQuota
+                ? 'border-amber-700/50 bg-amber-900/20'
+                : 'border-slate-700/50 bg-cosmic-800/60'
+            }`}
+          >
+            <span className="text-lg">{outOfQuota ? '🌙' : '✨'}</span>
+            <div className="flex-1">
+              {/* Dot tracker: one filled dot per remaining generation */}
+              <div className="flex items-center gap-1.5 mb-0.5">
+                {Array.from({ length: quota.limit }).map((_, i) => (
+                  <span
+                    key={i}
+                    className={`h-2 w-2 rounded-full ${
+                      i < quota.remaining ? 'bg-divine-500' : 'bg-slate-600'
+                    }`}
+                  />
+                ))}
+                <span className="ml-1.5 text-sm font-semibold text-white">
+                  {quota.remaining} of {quota.limit} left today
+                </span>
+              </div>
+              <p className="text-xs text-slate-400">
+                {outOfQuota
+                  ? "You've used all your generations for today — come back tomorrow!"
+                  : 'Each person can create up to 3 portraits a day.'}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="w-full max-w-md flex flex-col gap-5">
@@ -247,14 +292,16 @@ export default function Upload({ onResult, onBack }) {
         {/* Submit */}
         <button
           type="submit"
-          disabled={loading || !selectedScene || !imageFile}
+          disabled={loading || !selectedScene || !imageFile || outOfQuota}
           className="w-full py-4 bg-divine-500 hover:bg-divine-400 disabled:bg-slate-700 disabled:cursor-not-allowed text-cosmic-950 disabled:text-slate-400 font-bold text-base rounded-2xl transition-all duration-200 glow-gold disabled:shadow-none hover:scale-[1.02] active:scale-95"
         >
           {loading
             ? 'Generating…'
-            : !selectedScene
-              ? 'Select a Scene to Continue'
-              : 'Generate My Supernatural Image ✦'}
+            : outOfQuota
+              ? 'Daily Limit Reached — Come Back Tomorrow'
+              : !selectedScene
+                ? 'Select a Scene to Continue'
+                : 'Generate My Supernatural Image ✦'}
         </button>
       </form>
 

@@ -83,3 +83,50 @@ def _record_generation_sync(ip: str) -> None:
 async def record_generation(ip: str) -> None:
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(None, partial(_record_generation_sync, ip))
+
+
+# ---------------------------------------------------------------------------
+# Quota lookup — how many generations this IP has used today, for the UI to
+# show "X of 3 left". Read-only; never blocks. Falls back to a full quota if
+# Supabase is unconfigured/unreachable so the UI degrades gracefully.
+# ---------------------------------------------------------------------------
+
+def _full_quota() -> dict:
+    return {"used": 0, "limit": DAILY_LIMIT, "remaining": DAILY_LIMIT, "cooldown_remaining": 0}
+
+
+def _get_quota_sync(ip: str) -> dict:
+    client = _get_supabase()
+    if not client:
+        return _full_quota()
+
+    today = date.today().isoformat()
+    try:
+        result = client.table("rate_limits").select("*").eq("ip", ip).execute()
+        row = result.data[0] if result.data else None
+    except Exception:
+        log.warning("Quota lookup failed — returning full quota", exc_info=True)
+        return _full_quota()
+
+    if not row or row["day"] != today:
+        return _full_quota()
+
+    used = min(row["count"], DAILY_LIMIT)
+    cooldown_remaining = 0
+    if row["last_generated_at"]:
+        last = datetime.fromisoformat(row["last_generated_at"])
+        elapsed = (datetime.now(timezone.utc) - last).total_seconds()
+        if elapsed < COOLDOWN_SECONDS:
+            cooldown_remaining = int(COOLDOWN_SECONDS - elapsed)
+
+    return {
+        "used": used,
+        "limit": DAILY_LIMIT,
+        "remaining": max(0, DAILY_LIMIT - used),
+        "cooldown_remaining": cooldown_remaining,
+    }
+
+
+async def get_quota(ip: str) -> dict:
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, partial(_get_quota_sync, ip))
