@@ -1,0 +1,22 @@
+# Secrets — never commit real keys/passwords
+.env
+.env.local
+*.env
+!*.env.example
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Node
+node_modules/
+dist/
+frontend/dist/
+
+# OS
+.DS_Store
+
+# Claude
+.claude/
