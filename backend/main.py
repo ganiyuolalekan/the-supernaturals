@@ -1,14 +1,12 @@
 import os
-import time
 import uuid
 import base64
-import secrets
+import asyncio
 import logging
 from datetime import datetime, timezone
 
-from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Depends, Request
+from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from dotenv import load_dotenv
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -17,7 +15,7 @@ log = logging.getLogger(__name__)
 from validator import validate_image
 from gemini_client import generate_supernatural_image, IMAGE_GENERATION_MODELS
 from scene_prompts import has_scene, get_active_scene_id, get_scene_schedule
-from storage import upload_to_cloudinary, save_to_supabase, get_all_submissions, delete_submission
+from storage import check_rate_limit, record_generation
 
 load_dotenv()
 
@@ -33,11 +31,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# In-memory rate limit store: ip -> unix timestamp of last generation
-_rate_store: dict[str, float] = {}
-RATE_LIMIT_SECONDS = 300  # 5 minutes
-
-security = HTTPBasic()
+# Concurrency regulator — caps simultaneous Gemini calls so a burst of
+# requests queues in-process instead of all hitting Gemini's per-minute rate
+# limit at once. Requests beyond the queue depth get a fast, friendly
+# "try again shortly" instead of hanging past the client's timeout.
+MAX_CONCURRENT_GENERATIONS = int(os.getenv("MAX_CONCURRENT_GENERATIONS", "3"))
+MAX_QUEUE_DEPTH = int(os.getenv("MAX_QUEUE_DEPTH", "12"))
+_generation_semaphore = asyncio.Semaphore(MAX_CONCURRENT_GENERATIONS)
+_queue_depth = 0
+_queue_lock = asyncio.Lock()
 
 ERROR_MESSAGES = {
     "file_too_large": "Your photo exceeds 5 MB. Please compress it and try again.",
@@ -45,30 +47,15 @@ ERROR_MESSAGES = {
     "image_too_small": "Your photo must be at least 512 × 512 pixels.",
     "no_face_detected": "We couldn't detect a face. Please upload a clear, front-facing photo.",
     "multiple_faces": "Please upload a photo with only one person.",
-    "rate_limited": "You've already generated an image recently. Please wait 5 minutes.",
+    "rate_limited": "You've already generated an image recently. Please wait a few minutes.",
+    "daily_limit_reached": "You've used all 3 free generations for today. Come back tomorrow!",
+    "high_demand": "We're experiencing high demand right now. Please try again in a moment.",
     "generation_failed": "Image generation failed. Please try again.",
     "content_policy": "Gemini declined this request. Try a different photo or contact the admin.",
     "invalid_scene": "Unknown scene. Please pick one of the listed scenes.",
     "scene_not_active": "That scene isn't live this week. Please pick this week's scene.",
     "custom_prompt_too_long": "Your custom prompt is too long. Keep it under 500 characters.",
 }
-
-
-# ---------------------------------------------------------------------------
-# Auth helper
-# ---------------------------------------------------------------------------
-
-def _require_admin(credentials: HTTPBasicCredentials = Depends(security)) -> str:
-    admin_password = os.getenv("ADMIN_PASSWORD", "supernaturals2026")
-    username_ok = secrets.compare_digest(credentials.username.encode(), b"admin")
-    password_ok = secrets.compare_digest(credentials.password.encode(), admin_password.encode())
-    if not (username_ok and password_ok):
-        raise HTTPException(
-            status_code=401,
-            detail="Unauthorized",
-            headers={"WWW-Authenticate": "Basic"},
-        )
-    return credentials.username
 
 
 # ---------------------------------------------------------------------------
@@ -127,21 +114,17 @@ async def generate(
     custom_prompt: str | None = Form(default=None, max_length=500),
 ):
     client_ip = request.client.host if request.client else "unknown"
-    name = "Guest"
 
-    # Rate limit check
-    now = time.time()
-    last = _rate_store.get(client_ip, 0)
-    elapsed = now - last
-    if elapsed < RATE_LIMIT_SECONDS:
-        remaining = int(RATE_LIMIT_SECONDS - elapsed)
+    # Rate limit check — persisted in Supabase so it survives Render's
+    # free-tier instance spinning down and restarting after idle periods.
+    allowed, limit_error, retry_after = await check_rate_limit(client_ip)
+    if not allowed:
+        message = ERROR_MESSAGES[limit_error]
+        if limit_error == "rate_limited" and retry_after:
+            message = f"Please wait {retry_after} seconds before generating again."
         raise HTTPException(
             status_code=429,
-            detail={
-                "success": False,
-                "error": "rate_limited",
-                "message": f"Please wait {remaining} seconds before generating again.",
-            },
+            detail={"success": False, "error": limit_error, "message": message},
         )
 
     # Validate scene_id up front (before reading large image)
@@ -183,81 +166,66 @@ async def generate(
             },
         )
 
-    # Generate supernatural portrait
-    try:
-        generated_bytes = await generate_supernatural_image(
-            image_bytes,
-            image.content_type or "image/jpeg",
-            scene_id=scene_id,
-            custom_prompt=custom_prompt,
-        )
-    except RuntimeError as exc:
-        log.error("Gemini generation error: %s", exc)
-        err_str = str(exc).lower()
-        error_code = "content_policy" if "content policy" in err_str else "generation_failed"
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "success": False,
-                "error": error_code,
-                "message": ERROR_MESSAGES[error_code],
-                "debug": str(exc),
-            },
-        )
-    except Exception as exc:
-        log.error("Unexpected generation error: %s", exc, exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "success": False,
-                "error": "generation_failed",
-                "message": ERROR_MESSAGES["generation_failed"],
-                "debug": str(exc),
-            },
-        )
-
-    submission_id = str(uuid.uuid4())
-    generated_at = datetime.now(timezone.utc).isoformat()
-
-    # Try Cloudinary; fall back to base64 data URL for local testing
-    try:
-        image_url, cloudinary_public_id = await upload_to_cloudinary(
-            generated_bytes, submission_id, name
-        )
-    except Exception:
-        data_url = f"data:image/png;base64,{base64.b64encode(generated_bytes).decode()}"
-        return {
-            "success": True,
-            "submission_id": submission_id,
-            "image_url": data_url,
-            "generated_at": generated_at,
-            "storage": "local",
-        }
+    # Concurrency regulator — queue behind the semaphore instead of flooding
+    # Gemini all at once; fast-fail once the queue itself is too deep.
+    global _queue_depth
+    async with _queue_lock:
+        if _queue_depth >= MAX_QUEUE_DEPTH:
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "success": False,
+                    "error": "high_demand",
+                    "message": ERROR_MESSAGES["high_demand"],
+                },
+            )
+        _queue_depth += 1
 
     try:
-        await save_to_supabase(submission_id, name, image_url, client_ip, cloudinary_public_id)
-    except Exception:
-        pass  # Non-fatal — image is already uploaded
+        async with _generation_semaphore:
+            try:
+                generated_bytes = await generate_supernatural_image(
+                    image_bytes,
+                    image.content_type or "image/jpeg",
+                    scene_id=scene_id,
+                    custom_prompt=custom_prompt,
+                )
+            except RuntimeError as exc:
+                log.error("Gemini generation error: %s", exc)
+                err_str = str(exc).lower()
+                error_code = "content_policy" if "content policy" in err_str else "generation_failed"
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "success": False,
+                        "error": error_code,
+                        "message": ERROR_MESSAGES[error_code],
+                        "debug": str(exc),
+                    },
+                )
+            except Exception as exc:
+                log.error("Unexpected generation error: %s", exc, exc_info=True)
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "success": False,
+                        "error": "generation_failed",
+                        "message": ERROR_MESSAGES["generation_failed"],
+                        "debug": str(exc),
+                    },
+                )
+    finally:
+        async with _queue_lock:
+            _queue_depth -= 1
 
-    # Record successful generation for rate limiting
-    _rate_store[client_ip] = now
+    # Images are never persisted server-side — returned directly as a data
+    # URL. The original uploaded photo was already discarded after generation.
+    await record_generation(client_ip)
 
+    data_url = f"data:image/png;base64,{base64.b64encode(generated_bytes).decode()}"
     return {
         "success": True,
-        "submission_id": submission_id,
-        "image_url": image_url,
-        "generated_at": generated_at,
-        "storage": "cloudinary",
+        "submission_id": str(uuid.uuid4()),
+        "image_url": data_url,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
     }
-
-
-@app.get("/submissions")
-async def submissions(_admin: str = Depends(_require_admin)):
-    data = await get_all_submissions()
-    return {"total": len(data), "submissions": data}
-
-
-@app.delete("/submissions/{submission_id}")
-async def remove_submission(submission_id: str, _admin: str = Depends(_require_admin)):
-    await delete_submission(submission_id)
-    return {"success": True}

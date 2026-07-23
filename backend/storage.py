@@ -1,51 +1,14 @@
 import os
-import io
-import re
 import asyncio
+import logging
+from datetime import date, datetime, timezone
 from functools import partial
 
+log = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Cloudinary
-# ---------------------------------------------------------------------------
+DAILY_LIMIT = 3
+COOLDOWN_SECONDS = 300  # 5 minutes
 
-def _cloudinary_upload_sync(image_bytes: bytes, submission_id: str, name: str) -> tuple[str, str]:
-    import cloudinary
-    import cloudinary.uploader
-
-    cloudinary.config(
-        cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
-        api_key=os.getenv("CLOUDINARY_API_KEY"),
-        api_secret=os.getenv("CLOUDINARY_API_SECRET"),
-        secure=True,
-    )
-
-    name_slug = re.sub(r"[^a-z0-9]+", "-", name.lower())[:30].strip("-")
-    public_id = f"supernaturals-2026/{submission_id}_{name_slug}"
-
-    result = cloudinary.uploader.upload(
-        io.BytesIO(image_bytes),
-        public_id=public_id,
-        overwrite=True,
-        resource_type="image",
-        format="jpg",
-        quality="auto:good",
-        transformation=[{"width": 1080, "crop": "limit"}],
-    )
-
-    return result["secure_url"], result["public_id"]
-
-
-async def upload_to_cloudinary(image_bytes: bytes, submission_id: str, name: str) -> tuple[str, str]:
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(
-        None, partial(_cloudinary_upload_sync, image_bytes, submission_id, name)
-    )
-
-
-# ---------------------------------------------------------------------------
-# Supabase
-# ---------------------------------------------------------------------------
 
 def _get_supabase():
     url = os.getenv("SUPABASE_URL", "")
@@ -56,54 +19,67 @@ def _get_supabase():
     return create_client(url, key)
 
 
-def _save_sync(submission_id: str, name: str, generated_url: str, ip: str, cloudinary_public_id: str) -> None:
+# ---------------------------------------------------------------------------
+# Per-IP rate limiting — 3 generations/day + 5 min cooldown between each.
+# Persisted in Supabase (not in-memory) so limits survive Render's free-tier
+# instance spinning down and restarting after idle periods.
+# ---------------------------------------------------------------------------
+
+def _check_rate_limit_sync(ip: str) -> tuple[bool, str | None, int | None]:
+    """Returns (allowed, error_code, retry_after_seconds)."""
+    client = _get_supabase()
+    if not client:
+        return True, None, None  # Supabase not configured — fail open
+
+    today = date.today().isoformat()
+    try:
+        result = client.table("rate_limits").select("*").eq("ip", ip).execute()
+        row = result.data[0] if result.data else None
+    except Exception:
+        log.warning("Rate limit lookup failed — failing open", exc_info=True)
+        return True, None, None
+
+    if not row or row["day"] != today:
+        return True, None, None
+
+    if row["count"] >= DAILY_LIMIT:
+        return False, "daily_limit_reached", None
+
+    if row["last_generated_at"]:
+        last = datetime.fromisoformat(row["last_generated_at"])
+        elapsed = (datetime.now(timezone.utc) - last).total_seconds()
+        if elapsed < COOLDOWN_SECONDS:
+            return False, "rate_limited", int(COOLDOWN_SECONDS - elapsed)
+
+    return True, None, None
+
+
+async def check_rate_limit(ip: str) -> tuple[bool, str | None, int | None]:
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, partial(_check_rate_limit_sync, ip))
+
+
+def _record_generation_sync(ip: str) -> None:
     client = _get_supabase()
     if not client:
         return
-    client.table("submissions").insert(
-        {
-            "id": submission_id,
-            "name": name,
-            "generated_url": generated_url,
-            "cloudinary_public_id": cloudinary_public_id,
-            "ip_address": ip,
-        }
-    ).execute()
+    today = date.today().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        result = client.table("rate_limits").select("*").eq("ip", ip).execute()
+        row = result.data[0] if result.data else None
+        if row and row["day"] == today:
+            client.table("rate_limits").update(
+                {"count": row["count"] + 1, "last_generated_at": now}
+            ).eq("ip", ip).execute()
+        else:
+            client.table("rate_limits").upsert(
+                {"ip": ip, "day": today, "count": 1, "last_generated_at": now}
+            ).execute()
+    except Exception:
+        log.warning("Failed to record generation for rate limiting — non-fatal", exc_info=True)
 
 
-async def save_to_supabase(
-    submission_id: str,
-    name: str,
-    generated_url: str,
-    ip: str,
-    cloudinary_public_id: str,
-) -> None:
+async def record_generation(ip: str) -> None:
     loop = asyncio.get_event_loop()
-    await loop.run_in_executor(
-        None, partial(_save_sync, submission_id, name, generated_url, ip, cloudinary_public_id)
-    )
-
-
-def _get_submissions_sync() -> list[dict]:
-    client = _get_supabase()
-    if not client:
-        return []
-    result = client.table("submissions").select("*").order("created_at", desc=True).execute()
-    return result.data or []
-
-
-async def get_all_submissions() -> list[dict]:
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, _get_submissions_sync)
-
-
-def _delete_submission_sync(submission_id: str) -> None:
-    client = _get_supabase()
-    if not client:
-        return
-    client.table("submissions").delete().eq("id", submission_id).execute()
-
-
-async def delete_submission(submission_id: str) -> None:
-    loop = asyncio.get_event_loop()
-    await loop.run_in_executor(None, partial(_delete_submission_sync, submission_id))
+    await loop.run_in_executor(None, partial(_record_generation_sync, ip))

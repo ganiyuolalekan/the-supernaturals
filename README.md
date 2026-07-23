@@ -21,8 +21,7 @@ A web app that places any person into a cinematic, photorealistic supernatural p
 | Frontend | React 18 + Vite + Tailwind CSS |
 | Backend | FastAPI (Python 3.11+) |
 | AI | Google Gemini (image generation via `google-genai` SDK) |
-| Image Storage | Cloudinary (free tier) |
-| Database | Supabase Postgres (free tier) |
+| Rate-limit storage | Supabase Postgres (free tier) — no images or personal data |
 | Image Processing | Pillow (input portrait-crop), Canvas API (watermark) |
 
 ---
@@ -37,15 +36,14 @@ i-will-be-there/
 │   ├── prompt_builder.py    # Assembles the final prompt per scene
 │   ├── scene_prompts.py     # 10 photorealistic scene prompt texts
 │   ├── validator.py         # Image validation (size, type, face detection)
-│   ├── storage.py           # Cloudinary upload + Supabase save
+│   ├── storage.py           # Supabase-backed per-IP rate limiting
 │   └── .env                 # API keys (never commit this)
 ├── frontend/
 │   ├── src/
 │   │   ├── screens/
 │   │   │   ├── Landing.jsx  # Home screen
 │   │   │   ├── Upload.jsx   # Photo upload + scene picker + form
-│   │   │   ├── Result.jsx   # Generated image + download/share
-│   │   │   └── Admin.jsx    # Password-protected submissions dashboard
+│   │   │   └── Result.jsx   # Generated image + download/share
 │   │   ├── components/
 │   │   │   └── ScenePicker.jsx  # Accordion scene selector
 │   │   └── data/
@@ -91,10 +89,11 @@ No text, no watermarks, no labels of any kind.
 
 ### Model fallback chain
 `gemini_client.py` tries models in order until one returns an image:
-1. `gemini-3.1-flash-image-preview`
-2. `nano-banana-pro-preview`
-3. `gemini-3-pro-image-preview`
-4. `gemini-2.5-flash-image`
+1. `gemini-2.5-flash-image-preview` — primary, free tier (500 images/day quota)
+2. `gemini-3.1-flash-image-preview`
+3. `nano-banana-pro-preview`
+4. `gemini-3-pro-image-preview`
+5. `gemini-2.5-flash-image` — requires billing
 
 ### Watermark
 Applied **client-side** at download/share time via the Canvas API (`OffscreenCanvas`). The logo is drawn at 28% of image width, top-right corner, 7% transparent. The preview on screen is always clean.
@@ -106,18 +105,16 @@ Applied **client-side** at download/share time via the Canvas API (`OffscreenCan
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | `GET` | `/health` | — | Service health check |
+| `GET` | `/active-scene` | — | This week's live scene + full campaign schedule |
 | `GET` | `/debug/gemini` | — | Lists available Gemini models |
-| `POST` | `/generate` | — | Generate portrait (rate-limited: 1 per IP / 5 min) |
-| `GET` | `/submissions` | Basic auth | Admin: list all submissions |
-| `DELETE` | `/submissions/{id}` | Basic auth | Admin: delete a submission |
+| `POST` | `/generate` | — | Generate portrait (rate-limited: 3/day per IP, 5 min cooldown) |
 
 ### `POST /generate` form fields
 
 | Field | Required | Description |
 |---|---|---|
-| `name` | ✅ | Person's full name (1–100 chars) |
 | `image` | ✅ | JPEG or PNG, max 5 MB, min 512 × 512 px |
-| `scene_id` | ✅ | One of the 10 scene IDs |
+| `scene_id` | ✅ | Must match this week's active scene (see `/active-scene`) |
 | `custom_prompt` | — | Optional personal twist (max 500 chars) |
 
 ---
@@ -151,14 +148,12 @@ Open `http://localhost:5173`.
 ### Backend `.env`
 ```
 GEMINI_API_KEY=        # Google AI Studio key — aistudio.google.com/app/apikey
-GEMINI_MODEL=          # Leave blank to auto-try all models in order
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
-SUPABASE_URL=
+GEMINI_MODEL=          # gemini-2.5-flash-image-preview to force the free tier
+SUPABASE_URL=          # Used only to persist per-IP rate limits — no images stored
 SUPABASE_KEY=
-ADMIN_PASSWORD=        # Password for the /admin dashboard
 CORS_ORIGINS=*         # Comma-separated or * for open (lock down in production)
+MAX_CONCURRENT_GENERATIONS=3   # Concurrent Gemini calls allowed at once
+MAX_QUEUE_DEPTH=12             # Requests queued beyond that get a friendly 429
 ```
 
 ### Frontend `.env`
@@ -170,10 +165,12 @@ VITE_API_URL=http://localhost:8000   # Point to your backend URL
 
 ## Rate Limiting
 
-One generation per IP address every 5 minutes, enforced in-memory on the backend. Restarting the server resets all limits.
+Up to 3 generations per IP address per day, with a 5-minute cooldown between each. Limits are persisted in Supabase (not in-memory), so they survive Render restarting the free-tier instance after it spins down from inactivity.
+
+On top of the per-IP limit, a global concurrency regulator (`MAX_CONCURRENT_GENERATIONS`) caps how many Gemini calls run at once so a burst of simultaneous requests queues instead of blowing through Gemini's per-minute rate limit. Requests beyond `MAX_QUEUE_DEPTH` get an immediate "high demand" message instead of hanging.
 
 ---
 
-## Admin Dashboard
+## Image Storage
 
-Visit `/admin` in the browser. Login: `admin` / `<ADMIN_PASSWORD from .env>`. Shows all generated submissions with name, image, and timestamp. Individual submissions can be deleted.
+Generated portraits are never persisted server-side — each is returned directly to the browser as a base64 data URL and only exists there. Users must download or share it before leaving the page. The original uploaded selfie is processed in memory and discarded immediately, same as before.

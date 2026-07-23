@@ -23,9 +23,10 @@ Two files carry values used during local/ngrok testing that must be updated befo
 
 | Service | Purpose | Free tier |
 |---|---|---|
-| [Google AI Studio](https://aistudio.google.com/app/apikey) | Gemini image generation | Requires billing enabled (~$0.04/image) |
-| [Cloudinary](https://cloudinary.com) | Generated image storage | 25 GB storage, 25 GB bandwidth/month |
-| [Supabase](https://supabase.com) | Submission metadata | 500 MB database, unlimited rows |
+| [Google AI Studio](https://aistudio.google.com/app/apikey) | Gemini image generation | 500 images/day on `gemini-2.5-flash-image-preview` |
+| [Supabase](https://supabase.com) | Per-IP rate-limit tracking only — no images or personal data stored | 500 MB database, unlimited rows |
+
+Generated portraits are never stored server-side — they're returned directly to the browser and must be downloaded/shared from there. This keeps the app storage-free, so there's no Cloudinary or other image host to set up.
 
 ---
 
@@ -35,31 +36,23 @@ Two files carry values used during local/ngrok testing that must be updated befo
 2. Go to **SQL Editor** and run:
 
 ```sql
-create table submissions (
-  id            text primary key,
-  name          text not null,
-  image_url     text not null,
-  cloudinary_id text,
-  ip_hash       text,
-  created_at    timestamptz default now()
+create table rate_limits (
+  ip                 text primary key,
+  day                date not null,
+  count              int not null default 0,
+  last_generated_at  timestamptz
 );
 ```
+
+   This is the only table the app uses — it enforces 3 generations/day per IP plus a 5-minute cooldown, and is checked/updated on every `/generate` call. If you have an older `submissions` table from a previous version, it's no longer used and can be dropped.
 
 3. Copy your **Project URL** and **anon public key** from Project Settings → API.
 
 ---
 
-## Step 2 — Cloudinary Setup
+## Step 2 — Deploy the Backend on Render
 
-1. Create a free Cloudinary account.
-2. From the dashboard, copy your **Cloud Name**, **API Key**, and **API Secret**.
-3. No extra configuration needed — the app creates a `supernaturals` folder automatically.
-
----
-
-## Step 3 — Deploy the Backend on Render
-
-### 3a. Create a new Web Service
+### 2a. Create a new Web Service
 
 1. Go to [render.com](https://render.com) → New → **Web Service**.
 2. Connect your GitHub repo (push the project there first if you haven't).
@@ -75,36 +68,34 @@ create table submissions (
    ```
 7. Choose the **Free** instance type.
 
-### 3b. Set environment variables on Render
+### 2b. Set environment variables on Render
 
 In the Render dashboard → Environment, add:
 
 ```
-GEMINI_API_KEY         = <your key>
-GEMINI_MODEL           = gemini-2.5-flash-image-preview   (forces the free 500 images/day tier)
-CLOUDINARY_CLOUD_NAME  = <your cloud name>
-CLOUDINARY_API_KEY     = <your cloudinary key>
-CLOUDINARY_API_SECRET  = <your cloudinary secret>
-SUPABASE_URL           = <your supabase project URL>
-SUPABASE_KEY           = <your supabase anon key>
-ADMIN_PASSWORD         = <choose a strong password>
-CORS_ORIGINS           = https://your-app.vercel.app
+GEMINI_API_KEY              = <your key>
+GEMINI_MODEL                = gemini-2.5-flash-image-preview   (forces the free 500 images/day tier)
+SUPABASE_URL                = <your supabase project URL>
+SUPABASE_KEY                = <your supabase anon key>
+CORS_ORIGINS                = https://your-app.vercel.app
+MAX_CONCURRENT_GENERATIONS  = 3    (Gemini calls allowed in flight at once)
+MAX_QUEUE_DEPTH              = 12   (requests queued beyond this get a fast "high demand" response)
 ```
 
-> ⚠️ Set `CORS_ORIGINS` to your **exact Vercel URL** once you have it (Step 4 below). Until then you can use `*`.
+> ⚠️ Set `CORS_ORIGINS` to your **exact Vercel URL** once you have it (Step 3 below). Until then you can use `*`.
 
-### 3c. Note your backend URL
+### 2c. Note your backend URL
 
 After deploy completes, Render gives you a URL like:
 ```
-https://i-will-be-there-api.onrender.com
+https://your-backend.onrender.com
 ```
 Copy it — you need it for the frontend.
 
-### 3d. Verify the backend is live
+### 2d. Verify the backend is live
 
 ```bash
-curl https://i-will-be-there-api.onrender.com/health
+curl https://your-backend.onrender.com/health
 ```
 
 Expected response:
@@ -112,13 +103,13 @@ Expected response:
 {"status": "ok", "gemini_key_set": true, ...}
 ```
 
-> 💤 **Note:** Free Render instances spin down after 15 minutes of inactivity. The first request after idle takes ~30 seconds. Consider upgrading to Starter ($7/month) for production to avoid cold starts.
+> 💤 **Note:** Free Render instances spin down after 15 minutes of inactivity. The first request after idle takes ~30-60 seconds. Consider upgrading to Starter ($7/month) for production to avoid cold starts.
 
 ---
 
-## Step 4 — Deploy the Frontend on Vercel
+## Step 3 — Deploy the Frontend on Vercel
 
-### 4a. Build configuration
+### 3a. Build configuration
 
 1. Go to [vercel.com](https://vercel.com) → New Project → import your repo.
 2. Set **Root Directory** to `frontend`.
@@ -126,34 +117,30 @@ Expected response:
 4. Build Command: `npm run build`
 5. Output Directory: `dist`
 
-### 4b. Set environment variables on Vercel
+### 3b. Set environment variables on Vercel
 
 In the Vercel dashboard → Settings → Environment Variables, add:
 
 ```
-VITE_API_URL = https://i-will-be-there-api.onrender.com
+VITE_API_URL = https://your-backend.onrender.com
 ```
 
 Replace the URL with your actual Render backend URL.
 
-### 4c. Deploy
+### 3c. Deploy
 
 Click **Deploy**. Vercel builds and publishes to a URL like:
 ```
-https://i-will-be-there.vercel.app
+https://your-app.vercel.app
 ```
 
-### 4d. Update CORS on Render
+### 3d. Update CORS on Render
 
-Go back to Render → Environment → update `CORS_ORIGINS` to:
-```
-https://i-will-be-there.vercel.app
-```
-Render will redeploy automatically.
+Go back to Render → Environment → update `CORS_ORIGINS` to your exact Vercel URL. Render will redeploy automatically.
 
 ---
 
-## Step 5 — Custom Domain (Optional)
+## Step 4 — Custom Domain (Optional)
 
 ### Vercel
 1. Vercel dashboard → Domains → Add Domain.
@@ -167,16 +154,13 @@ Render will redeploy automatically.
 
 ---
 
-## Step 6 — Verify End-to-End
+## Step 5 — Verify End-to-End
 
 1. Open your Vercel URL.
-2. Upload a test photo, select a scene, tap Generate.
-3. Confirm the image is generated and appears in:
-   - The result screen
-   - Your Cloudinary media library (`supernaturals/` folder)
-   - Your Supabase `submissions` table
-4. Download the image and check the watermark appears in the top-right corner.
-5. Visit `/admin` and log in with your `ADMIN_PASSWORD`.
+2. Upload a test photo, select this week's active scene, tap Generate.
+3. Confirm the image appears on the result screen and downloads/shares correctly with the watermark.
+4. Generate 3 times in a row from the same IP — the 4th should be rejected with the daily-limit message. Check the `rate_limits` row for your IP in Supabase to confirm it's tracking correctly.
+5. Background the tab for a minute (switch apps) and return — the result screen should still be there instead of resetting to the landing page.
 
 ---
 
@@ -185,10 +169,10 @@ Render will redeploy automatically.
 | Concern | Solution |
 |---|---|
 | Backend cold starts | Upgrade Render to Starter ($7/month) — no spin-down |
-| Concurrent users | Render auto-scales; Gemini handles requests sequentially per instance. For high concurrency, add a second Render instance or use a task queue |
-| Rate limiting | Currently in-memory (resets on restart). For multi-instance deployments, swap `_rate_store` in `main.py` for a Redis-backed store |
-| Image storage bandwidth | Cloudinary free tier allows 25 GB/month. Monitor usage in the Cloudinary dashboard; upgrade if needed |
-| Database | Supabase free tier is more than sufficient for thousands of submissions |
+| Gemini per-minute rate limit | `MAX_CONCURRENT_GENERATIONS` / `MAX_QUEUE_DEPTH` on Render throttle bursts so they queue instead of erroring — tune lower if you still see 429s from Gemini |
+| Concurrent users | Render free tier is single-instance (0.1 CPU / 512 MB) — the concurrency regulator above is the main mitigation short of upgrading the instance type |
+| Rate-limit persistence | Stored in Supabase, not in-memory, so it survives Render restarts. If Supabase is briefly unreachable, the check fails open (allows the request) rather than blocking everyone |
+| Supabase auto-pause | Free Supabase projects pause after 7 days with zero activity. A quiet week could pause it — the app still works either way (rate-limit check fails open), but you'd lose enforcement until you un-pause it in the Supabase dashboard |
 
 ---
 
@@ -197,8 +181,8 @@ Render will redeploy automatically.
 | Symptom | Likely cause | Fix |
 |---|---|---|
 | `gemini_key_set: false` on `/health` | API key missing or wrong | Check `GEMINI_API_KEY` on Render |
-| `BILLING_REQUIRED` error | Gemini free tier has no image quota | Enable billing at aistudio.google.com/billing |
+| `BILLING_REQUIRED` error | Gemini free tier quota hit (daily or per-minute) | Wait a minute and retry, or enable billing at aistudio.google.com/billing |
 | CORS error in browser | `CORS_ORIGINS` doesn't match frontend URL | Update the env var on Render and redeploy |
-| Images not saving | Cloudinary credentials wrong | Check all three Cloudinary vars |
-| Admin login fails | Wrong password | Check `ADMIN_PASSWORD` on Render |
+| "high demand" errors under light load | `MAX_QUEUE_DEPTH` too low, or Gemini calls are slow/timing out | Check Render logs for the actual Gemini latency; raise `MAX_QUEUE_DEPTH` if the instance can handle it |
+| Rate limit not resetting daily | Supabase `rate_limits` row stuck | Check the `day` column matches today's date in Supabase; delete the row to reset manually |
 | Cold start timeout | Free Render tier | Upgrade to Starter or warm the service with a cron ping |

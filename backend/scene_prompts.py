@@ -21,7 +21,7 @@ from datetime import date, timedelta
 # Campaign schedule: one scene "live" per week, in the order below, starting
 # launch week. Order matches the progression: Miracles & Power -> Authority &
 # Warfare -> Fire & Spirit -> Ascension & Glory (see get_scene_ids()).
-LAUNCH_DATE = date(2026, 8, 10)  # Week 1 — Walking on Water
+LAUNCH_DATE = date(2026, 8, 8)  # Week 1 — Walking on Water (Saturday)
 WEEK_LENGTH_DAYS = 7
 
 SCENE_PROMPTS: dict[str, str] = {

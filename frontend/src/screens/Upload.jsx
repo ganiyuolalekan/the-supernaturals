@@ -233,8 +233,8 @@ export default function Upload({ onResult, onBack }) {
 
         {/* Consent */}
         <p className="text-xs text-slate-500 leading-relaxed">
-          By uploading, you allow your <strong className="text-slate-400">generated image</strong> to be
-          shared on our social media. Your original photo is processed in memory and immediately deleted — it is never stored or shared.
+          Your original photo is processed in memory and immediately deleted — it is never stored or shared.
+          Your generated portrait isn't saved anywhere either; download or share it yourself before leaving this page.
         </p>
 
         {/* Error */}
