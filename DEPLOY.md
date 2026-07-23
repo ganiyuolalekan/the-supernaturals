@@ -81,7 +81,7 @@ In the Render dashboard → Environment, add:
 
 ```
 GEMINI_API_KEY         = <your key>
-GEMINI_MODEL           =                        (leave blank)
+GEMINI_MODEL           = gemini-2.5-flash-image-preview   (forces the free 500 images/day tier)
 CLOUDINARY_CLOUD_NAME  = <your cloud name>
 CLOUDINARY_API_KEY     = <your cloudinary key>
 CLOUDINARY_API_SECRET  = <your cloudinary secret>
