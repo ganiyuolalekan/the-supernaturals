@@ -2,16 +2,19 @@ import { useState } from 'react'
 
 // ---------------------------------------------------------------------------
 // Watermark helper
-// Draws the generated portrait onto a canvas, then stamps logo_stamp.png
-// centered at the bottom at ~28% of the image width.
+// Draws the generated portrait onto a canvas, stamps logo_stamp.png in the
+// top-right corner, and adds a "Register here" barcode in the bottom-left.
 // ---------------------------------------------------------------------------
 async function applyWatermark(imageBlob) {
   // 1. Load the source image
   const imgBitmap = await createImageBitmap(imageBlob)
 
-  // 2. Load the logo (served from /public)
+  // 2. Load the logo and barcode (served from /public)
   const logoRes = await fetch('/logo_stamp.png')
   const logoBitmap = await createImageBitmap(await logoRes.blob())
+
+  const barcodeRes = await fetch('/registration_barcode.png')
+  const barcodeBitmap = await createImageBitmap(await barcodeRes.blob())
 
   const W = imgBitmap.width
   const H = imgBitmap.height
@@ -25,6 +28,16 @@ async function applyWatermark(imageBlob) {
   const logoX = W - logoW - pad
   const logoY = pad
 
+  // Barcode sizing: 17% of image width, preserving aspect ratio
+  const barcodePad = Math.round(W * 0.045)
+  const barcodeW = Math.round(W * 0.17)
+  const barcodeH = Math.round(barcodeW * (barcodeBitmap.height / barcodeBitmap.width))
+  const barcodeX = barcodePad
+  const barcodeCenterX = barcodeX + barcodeW / 2
+  const fontSize = Math.max(12, Math.round(W * 0.018))
+  const labelGap = Math.round(fontSize * 0.6)
+  const barcodeY = H - barcodePad - barcodeH
+
   // 3. Composite on an off-screen canvas
   const canvas = new OffscreenCanvas(W, H)
   const ctx = canvas.getContext('2d')
@@ -32,7 +45,15 @@ async function applyWatermark(imageBlob) {
   ctx.drawImage(imgBitmap, 0, 0, W, H)
   ctx.globalAlpha = 0.93   // 7% transparent
   ctx.drawImage(logoBitmap, logoX, logoY, logoW, logoH)
+  ctx.drawImage(barcodeBitmap, barcodeX, barcodeY, barcodeW, barcodeH)
   ctx.globalAlpha = 1.0    // reset
+
+  // "REGISTER HERE" label, bold and centered above the barcode
+  ctx.font = `800 ${fontSize}px sans-serif`
+  ctx.textBaseline = 'bottom'
+  ctx.textAlign = 'center'
+  ctx.fillStyle = '#ffffff'
+  ctx.fillText('REGISTER HERE', barcodeCenterX, barcodeY - labelGap)
 
   // 4. Export as JPEG (smaller file size for sharing)
   return canvas.convertToBlob({ type: 'image/jpeg', quality: 0.93 })

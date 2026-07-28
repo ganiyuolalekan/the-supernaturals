@@ -16,4 +16,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping backend health endpoint
-        run: curl -fsS --max-time 30 https://the-supernaturals.onrender.com/health
+        # A single request can hit Render mid cold-start and get 0 bytes back
+        # well before the free-tier instance (0.1 CPU) finishes booting the
+        # Python process. Retry a few times with a generous per-attempt
+        # timeout so the first ping of the day — which is the one that
+        # actually has to wake the instance — doesn't fail the job.
+        run: |
+          for attempt in 1 2 3 4; do
+            if curl -fsS --max-time 60 https://the-supernaturals.onrender.com/health; then
+              exit 0
+            fi
+            echo "Attempt $attempt failed, retrying in 15s..."
+            sleep 15
+          done
+          exit 1
