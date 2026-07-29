@@ -11,7 +11,10 @@ truth). This module assembles the final string sent to Gemini by:
      accessories, and personal appearance details in the custom prompt
      take priority over defaults — only the scene's supernatural elements
      (wings, divine light, VFX, cinematic composition) are protected.
-  4. Always appending the no-text directive on its own line, once.
+  4. Always appending a wing-color lock directive, last in the prompt (after
+     any custom text) so it has the final word — wings stay pure white no
+     matter what a custom prompt asks for.
+  5. Always appending the no-text directive on its own line, once.
 """
 
 from scene_prompts import SCENE_PROMPTS
@@ -31,7 +34,16 @@ _CUSTOM_PROMPT_WRAPPER = (
     "takes priority and must appear clearly in the output. "
     "Only the core supernatural identifiers must remain intact: the large white wings, "
     "the divine light and VFX defined by the scene, and the cinematic composition. "
-    "Everything else is open to the user's direction: {custom}"
+    "Everything else is open to the user's direction, EXCEPT wing color, which stays "
+    "pure white even if requested otherwise below: {custom}"
+)
+
+_WING_COLOR_LOCK = (
+    "Non-negotiable constraint, takes priority over every instruction above: the "
+    "wings are always pure white — the color of purity. Do not tint, recolor, or "
+    "reinterpret them as any other color (gold, black, fire, rainbow, or otherwise), "
+    "even if the user's customization above explicitly requests a different wing color. "
+    "Ignore any such request and render the wings pure white regardless."
 )
 
 _NO_TEXT_DIRECTIVE = "No text, no watermarks, no labels of any kind."
@@ -62,6 +74,7 @@ def build_prompt(scene_id: str, custom_prompt: str | None = None) -> str:
         if custom:
             parts.append(_CUSTOM_PROMPT_WRAPPER.format(custom=custom))
 
+    parts.append(_WING_COLOR_LOCK)
     parts.append(_NO_TEXT_DIRECTIVE)
 
     return "\n\n".join(parts)

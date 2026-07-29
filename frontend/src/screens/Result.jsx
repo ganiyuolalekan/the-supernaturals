@@ -36,7 +36,11 @@ async function applyWatermark(imageBlob) {
   const barcodeCenterX = barcodeX + barcodeW / 2
   const fontSize = Math.max(12, Math.round(W * 0.018))
   const labelGap = Math.round(fontSize * 0.6)
-  const barcodeY = H - barcodePad - barcodeH
+  // Bottom edge sits at 82% of image height (between center and bottom) so
+  // WhatsApp Status's caption/reply overlay near the very bottom of the
+  // image doesn't cover it.
+  const barcodeBottomY = Math.round(H * 0.82)
+  const barcodeY = barcodeBottomY - barcodeH
 
   // 3. Composite on an off-screen canvas
   const canvas = new OffscreenCanvas(W, H)
