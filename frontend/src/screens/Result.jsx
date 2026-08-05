@@ -1,6 +1,23 @@
 import { useState } from 'react'
 
 // ---------------------------------------------------------------------------
+// Campaign links — every shared image carries these three calls to action:
+// register for the conference, follow the socials, learn more.
+// ---------------------------------------------------------------------------
+const REGISTER_URL = 'https://forms.gle/BP3b7uYmj3AsZ49TA'
+const INSTAGRAM_URL = 'https://www.instagram.com/rccgpa_tig/'
+const ABOUT_URL = 'https://theissachargen.carrd.co/'
+const SOCIAL_HANDLE = '@rccgpa_tig'
+
+const SHARE_MESSAGE = [
+  '✨ I am Supernatural — IGC 2026',
+  `Register: ${REGISTER_URL}`,
+  `Follow ${SOCIAL_HANDLE} on Instagram & TikTok`,
+  `Learn more: ${ABOUT_URL}`,
+  '#TheSuperNaturals2026',
+].join('\n')
+
+// ---------------------------------------------------------------------------
 // Watermark helper
 // Draws the generated portrait onto a canvas, stamps logo_stamp.png in the
 // top-right corner, and adds a "Register here" barcode in the bottom-left.
@@ -80,8 +97,19 @@ export default function Result({ data, onReset }) {
   const [sharing, setSharing] = useState(false)
   const [downloaded, setDownloaded] = useState(false)
   const [shared, setShared] = useState(false)
+  // 'idle' | 'copied' | 'manual' — 'manual' reveals the caption for hand-copying
+  // when the browser blocks clipboard writes (common in in-app browsers).
+  const [copyState, setCopyState] = useState('idle')
 
-  const isDataUrl = image_url?.startsWith('data:')
+  const copyShareMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(SHARE_MESSAGE)
+      setCopyState('copied')
+      setTimeout(() => setCopyState('idle'), 3000)
+    } catch {
+      setCopyState('manual')
+    }
+  }
 
   const handleDownload = async () => {
     try {
@@ -118,22 +146,20 @@ export default function Result({ data, onReset }) {
       }
 
       if (navigator.share) {
+        // No `title` — some targets (WhatsApp, Telegram) prepend it to the
+        // body, which put an extra headline above the caption.
         const shareData = {
-          title: 'My Supernatural Portrait — The SuperNaturals 2026',
-          text: '✨ I am Supernatural! Tag us @TheSuperNaturals2026 and use #TheSuperNaturals2026',
+          text: SHARE_MESSAGE,
           ...(file && navigator.canShare?.({ files: [file] }) ? { files: [file] } : {}),
         }
         await navigator.share(shareData)
         setShared(true)
         setTimeout(() => setShared(false), 3000)
       } else {
-        // Desktop fallback — copy URL or download watermarked file
-        if (!isDataUrl) {
-          await navigator.clipboard.writeText(image_url)
-          alert('Image URL copied to clipboard! Paste it to share.')
-        } else {
-          handleDownload()
-        }
+        // Desktop fallback — copy the caption (links and all) and save the
+        // image, so the post can be assembled by hand.
+        await copyShareMessage()
+        handleDownload()
       }
     } catch (err) {
       if (err.name !== 'AbortError') {
@@ -188,12 +214,61 @@ export default function Result({ data, onReset }) {
           {sharing ? 'Preparing…' : shared ? '✓ Shared!' : '↗ Share on Instagram'}
         </button>
 
-        {/* Tag instruction */}
-        <div className="bg-cosmic-800/60 border border-slate-700/40 rounded-xl px-4 py-3 text-center">
-          <p className="text-slate-300 text-sm">
-            Tag us <span className="text-divine-500 font-semibold">@TheSuperNaturals2026</span> and use{' '}
-            <span className="text-divine-500 font-semibold">#TheSuperNaturals2026</span>
+        {/* Share CTAs — register, follow, learn more */}
+        <div className="bg-cosmic-800/60 border border-slate-700/40 rounded-xl px-4 py-4">
+          <p className="text-slate-400 text-xs text-center mb-3">
+            When you share, bring someone with you 👇
           </p>
+
+          <a
+            href={REGISTER_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-full py-3 mb-2 bg-divine-500/15 border border-divine-500/40 hover:bg-divine-500/25 rounded-xl text-center text-divine-400 font-semibold text-sm transition-colors"
+          >
+            Register for the conference →
+          </a>
+
+          <div className="flex gap-2">
+            <a
+              href={INSTAGRAM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 py-2.5 border border-slate-700 hover:border-slate-500 rounded-xl text-center text-slate-300 text-xs font-medium transition-colors"
+            >
+              Follow {SOCIAL_HANDLE}
+            </a>
+            <a
+              href={ABOUT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 py-2.5 border border-slate-700 hover:border-slate-500 rounded-xl text-center text-slate-300 text-xs font-medium transition-colors"
+            >
+              About us
+            </a>
+          </div>
+
+          <p className="text-slate-500 text-xs text-center mt-3 leading-relaxed">
+            Instagram &amp; TikTok: <span className="text-slate-300 font-medium">{SOCIAL_HANDLE}</span> ·
+            Use <span className="text-divine-500 font-semibold">#TheSuperNaturals2026</span>
+          </p>
+
+          <button
+            onClick={copyShareMessage}
+            className="w-full mt-3 py-2 text-slate-400 hover:text-white text-xs font-medium transition-colors"
+          >
+            {copyState === 'copied' ? '✓ Caption copied' : '⧉ Copy caption with links'}
+          </button>
+
+          {copyState === 'manual' && (
+            <textarea
+              readOnly
+              rows={6}
+              value={SHARE_MESSAGE}
+              onFocus={(e) => e.target.select()}
+              className="w-full mt-1 px-3 py-2 bg-cosmic-900 border border-slate-700 rounded-lg text-slate-300 text-xs leading-relaxed resize-none"
+            />
+          )}
         </div>
 
         {/* Divider */}

@@ -249,8 +249,9 @@ export default function Upload({ onResult, onBack }) {
             </span>
           </div>
           <p className="text-xs text-slate-500 mb-2 leading-relaxed">
-            Personalize anything — clothing, objects, motion, extra people, animals, or details in the scene.
-            The wings and divine light always stay. Everything else is open to your direction.
+            Each scene already dresses you to match it. Ask for a different outfit here and you'll get it —
+            a white gown instead of a white shirt, an agbada instead of a suit — styled to still fit the scene.
+            You can also add objects, motion, extra people or animals. The scene, the wings and the divine light stay.
             Examples: <em className="text-slate-400">"wearing a traditional Yoruba agbada"</em>, <em className="text-slate-400">"a white dove landing on my shoulder"</em>, <em className="text-slate-400">"my wife standing beside me"</em>, <em className="text-slate-400">"arms raised in worship"</em>.
           </p>
           <textarea

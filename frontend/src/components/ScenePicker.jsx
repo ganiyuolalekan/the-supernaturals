@@ -58,6 +58,13 @@ export default function ScenePicker({ selected, onChange, activeSceneId, schedul
             ✦ Week {activeWeek}{activeEntry ? ` · ${formatDateRange(activeEntry.starts, activeEntry.ends)}` : ''}
           </p>
           <p className="text-sm text-white font-semibold">{activeScene.title}</p>
+          {activeScene.wardrobe && (
+            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+              <span className="mr-1">👔</span>
+              <span className="text-slate-300 font-semibold">Styling: </span>
+              {activeScene.wardrobe}
+            </p>
+          )}
           <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
             One scene goes live each week — this is the only scene generating right now.
             Come back next week for the next one.
@@ -126,6 +133,12 @@ export default function ScenePicker({ selected, onChange, activeSceneId, schedul
                             <p className="text-xs text-slate-500 mt-0.5 leading-relaxed line-clamp-2">
                               {scene.description}
                             </p>
+                            {scene.wardrobe && (
+                              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                                <span className="mr-1">👔</span>
+                                {scene.wardrobe}
+                              </p>
+                            )}
                             <p className="text-xs text-divine-600 mt-1">{scene.scripture}</p>
                             <p className={`text-xs mt-1 font-medium ${locked ? 'text-slate-500' : 'text-divine-500'}`}>
                               {sceneCaption(scene)}

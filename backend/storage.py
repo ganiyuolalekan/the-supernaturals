@@ -1,6 +1,7 @@
 import os
 import asyncio
 import logging
+import threading
 from datetime import date, datetime, timezone
 from functools import partial
 
@@ -9,14 +10,55 @@ log = logging.getLogger(__name__)
 DAILY_LIMIT = 3
 COOLDOWN_SECONDS = 300  # 5 minutes
 
+_client = None
+_client_lock = threading.Lock()
+
+# Per-process fallback store, used whenever Supabase is unconfigured or
+# unreachable. Limits then apply per running instance and reset on restart —
+# weaker than the Supabase-backed version, but far better than failing open
+# and letting one person generate unlimited (paid) images. /health reports
+# which store is actually live.
+_memory_rows: dict[str, dict] = {}
+_memory_lock = threading.Lock()
+
 
 def _get_supabase():
+    global _client
     url = os.getenv("SUPABASE_URL", "")
     key = os.getenv("SUPABASE_KEY", "")
     if not url or not key:
         return None
-    from supabase import create_client
-    return create_client(url, key)
+    with _client_lock:
+        if _client is None:
+            from supabase import create_client
+            _client = create_client(url, key)
+    return _client
+
+
+def _load_row(ip: str) -> dict | None:
+    """The IP's row from Supabase, falling back to the in-memory store."""
+    client = _get_supabase()
+    if client:
+        try:
+            result = client.table("rate_limits").select("*").eq("ip", ip).execute()
+            return result.data[0] if result.data else None
+        except Exception:
+            log.warning("Supabase read failed — using in-memory limits", exc_info=True)
+    with _memory_lock:
+        return _memory_rows.get(ip)
+
+
+def _save_row(ip: str, row: dict) -> None:
+    """Persist the IP's row to Supabase, falling back to the in-memory store."""
+    client = _get_supabase()
+    if client:
+        try:
+            client.table("rate_limits").upsert({"ip": ip, **row}).execute()
+            return
+        except Exception:
+            log.warning("Supabase write failed — using in-memory limits", exc_info=True)
+    with _memory_lock:
+        _memory_rows[ip] = row
 
 
 # ---------------------------------------------------------------------------
@@ -27,17 +69,8 @@ def _get_supabase():
 
 def _check_rate_limit_sync(ip: str) -> tuple[bool, str | None, int | None]:
     """Returns (allowed, error_code, retry_after_seconds)."""
-    client = _get_supabase()
-    if not client:
-        return True, None, None  # Supabase not configured — fail open
-
     today = date.today().isoformat()
-    try:
-        result = client.table("rate_limits").select("*").eq("ip", ip).execute()
-        row = result.data[0] if result.data else None
-    except Exception:
-        log.warning("Rate limit lookup failed — failing open", exc_info=True)
-        return True, None, None
+    row = _load_row(ip)
 
     if not row or row["day"] != today:
         return True, None, None
@@ -60,24 +93,11 @@ async def check_rate_limit(ip: str) -> tuple[bool, str | None, int | None]:
 
 
 def _record_generation_sync(ip: str) -> None:
-    client = _get_supabase()
-    if not client:
-        return
     today = date.today().isoformat()
     now = datetime.now(timezone.utc).isoformat()
-    try:
-        result = client.table("rate_limits").select("*").eq("ip", ip).execute()
-        row = result.data[0] if result.data else None
-        if row and row["day"] == today:
-            client.table("rate_limits").update(
-                {"count": row["count"] + 1, "last_generated_at": now}
-            ).eq("ip", ip).execute()
-        else:
-            client.table("rate_limits").upsert(
-                {"ip": ip, "day": today, "count": 1, "last_generated_at": now}
-            ).execute()
-    except Exception:
-        log.warning("Failed to record generation for rate limiting — non-fatal", exc_info=True)
+    row = _load_row(ip)
+    count = row["count"] + 1 if row and row["day"] == today else 1
+    _save_row(ip, {"day": today, "count": count, "last_generated_at": now})
 
 
 async def record_generation(ip: str) -> None:
@@ -96,17 +116,8 @@ def _full_quota() -> dict:
 
 
 def _get_quota_sync(ip: str) -> dict:
-    client = _get_supabase()
-    if not client:
-        return _full_quota()
-
     today = date.today().isoformat()
-    try:
-        result = client.table("rate_limits").select("*").eq("ip", ip).execute()
-        row = result.data[0] if result.data else None
-    except Exception:
-        log.warning("Quota lookup failed — returning full quota", exc_info=True)
-        return _full_quota()
+    row = _load_row(ip)
 
     if not row or row["day"] != today:
         return _full_quota()
@@ -130,3 +141,36 @@ def _get_quota_sync(ip: str) -> dict:
 async def get_quota(ip: str) -> dict:
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, partial(_get_quota_sync, ip))
+
+
+# ---------------------------------------------------------------------------
+# Connectivity check for /health — answers "is Supabase actually working?"
+# rather than just "are the env vars set?". Without this the app looks healthy
+# while silently rate-limiting in memory only.
+# ---------------------------------------------------------------------------
+
+def _check_connection_sync() -> dict:
+    url = os.getenv("SUPABASE_URL", "")
+    key = os.getenv("SUPABASE_KEY", "")
+    if not url or not key:
+        return {
+            "configured": False,
+            "connected": False,
+            "store": "memory",
+            "error": "SUPABASE_URL / SUPABASE_KEY not set in backend/.env",
+        }
+    try:
+        _get_supabase().table("rate_limits").select("ip").limit(1).execute()
+        return {"configured": True, "connected": True, "store": "supabase", "error": None}
+    except Exception as exc:
+        return {
+            "configured": True,
+            "connected": False,
+            "store": "memory",
+            "error": f"{type(exc).__name__}: {exc}"[:200],
+        }
+
+
+async def check_connection() -> dict:
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, _check_connection_sync)

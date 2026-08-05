@@ -67,7 +67,7 @@ Each scene has a full ~30-line photorealistic prompt stored in `backend/scene_pr
 1. Genre tag (`photorealistic fantasy realism`)
 2. Shot type and camera angle
 3. Subject pose and expression
-4. Attire (preserved from photo for most scenes; specific thematic dress for 3 scenes)
+4. Attire (every scene has its own wardrobe, styled to that scene — modern and clean, never the clothes from the upload)
 5. Supernatural VFX description
 6. Volumetric lighting recipe
 7. Realism anchors (subsurface scattering, feather detail, physically accurate reflections)
@@ -82,10 +82,38 @@ Each scene has a full ~30-line photorealistic prompt stored in `backend/scene_pr
 
 [size directive: portrait 1080 × 1620]
 
-[user twist, if any — clothing/appearance here overrides scene defaults]
+[wardrobe directive — the photo supplies identity, not clothing; the scene's
+ wardrobe is fitted to the subject's own gender and build]
+
+[user twist, if any — carries the scene's wardrobe rule, so a clothing request
+ changes the garment but not the scene]
+
+[identity lock — face, skin tone, hair and build stay the person's own]
+
+[wing-color lock — wings stay pure white]
 
 No text, no watermarks, no labels of any kind.
 ```
+
+### Per-scene wardrobe
+Street clothes from an upload pulled the generated portraits out of their scene, so each scene now specifies its own styling — deliberately modern and clean (contemporary tailoring, no ancient robes or gowns) so people still look like themselves:
+
+| Scene | Wardrobe |
+|---|---|
+| Walking on Water | Crisp modern all-white, rolled sleeves, barefoot |
+| Commanding the Storm | Off-white shirt under a long ivory storm coat |
+| Defeating Giants | White & gold battle armor, modern athletic cut |
+| Silencing the Lion | Sharp black tailoring over a white shirt, gold detail |
+| Breaking Every Chain | Plain white tee, bare forearms where chains break |
+| Walking Through Fire | Pristine white, spotless inside the furnace |
+| Anointed with Oil | Modern white ceremonial coat, gold embroidery |
+| Ascending on Eagle's Wings | White with a lightweight trailing overlayer |
+| Army of Angels | White & gold battle armor, polished and modern |
+| Receiving the Mantle | Understated stone-white shirt, dark trousers |
+
+The wardrobe shows on the scene picker in the UI.
+
+Each scene also has a **wardrobe rule** (`SCENE_WARDROBE_RULES` in `scene_prompts.py`) that bounds what a user's twist may do to the clothing. The garment is theirs to choose — a white gown instead of a white shirt, an agbada instead of a suit — but it has to satisfy the rule, so the outfit still belongs to the scene. Walking on Water requires white and bare feet; Defeating Giants requires armor; Walking Through Fire requires pristine and unscorched, and so on. A request that would break the rule isn't refused and doesn't fall back to the default outfit — it's rendered as the asked-for garment adapted to the rule (a white version, an armored version). The scene's setting, VFX, lighting, composition and colour grade are never the twist's to change.
 
 ### Model fallback chain
 `gemini_client.py` tries models in order until one returns an image:
@@ -166,6 +194,14 @@ VITE_API_URL=http://localhost:8000   # Point to your backend URL
 ## Rate Limiting
 
 Up to 3 generations per IP address per day, with a 5-minute cooldown between each. Limits are persisted in Supabase (not in-memory), so they survive Render restarting the free-tier instance after it spins down from inactivity.
+
+If Supabase is unconfigured or unreachable, limits fall back to a **per-process in-memory store** rather than failing open — they still count down, but they reset on restart and aren't shared across instances. `GET /health` reports which store is live:
+
+```json
+"supabase": { "configured": true, "connected": false, "store": "memory", "error": "…" }
+```
+
+`store: "memory"` with `connected: false` means the quota badge in the UI works but limits are only as durable as the running instance — worth fixing before a big push, since every generation costs money.
 
 On top of the per-IP limit, a global concurrency regulator (`MAX_CONCURRENT_GENERATIONS`) caps how many Gemini calls run at once so a burst of simultaneous requests queues instead of blowing through Gemini's per-minute rate limit. Requests beyond `MAX_QUEUE_DEPTH` get an immediate "high demand" message instead of hanging.
 

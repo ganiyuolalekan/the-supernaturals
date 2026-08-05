@@ -15,7 +15,13 @@ log = logging.getLogger(__name__)
 from validator import validate_image
 from gemini_client import generate_supernatural_image, IMAGE_GENERATION_MODELS
 from scene_prompts import has_scene, get_active_scene_id, get_scene_schedule
-from storage import check_rate_limit, record_generation, get_quota, DAILY_LIMIT
+from storage import (
+    check_rate_limit,
+    record_generation,
+    get_quota,
+    check_connection,
+    DAILY_LIMIT,
+)
 
 load_dotenv()
 
@@ -71,6 +77,9 @@ async def health():
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "gemini_key_set": key_set,
         "gemini_model": os.getenv("GEMINI_MODEL", "").strip() or IMAGE_GENERATION_MODELS[0],
+        # Where rate limits are actually being stored right now. If this says
+        # store="memory", limits reset whenever the instance restarts.
+        "supabase": await check_connection(),
     }
 
 
