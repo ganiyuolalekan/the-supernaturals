@@ -50,6 +50,31 @@ _WARDROBE_DIRECTIVE = (
     "render."
 )
 
+# Scenes whose wardrobe is a loose white/neutral shirt over trousers. These get an
+# extra, emphatic fit directive because the model kept tucking the shirt in despite
+# the "left untucked" wording inside the scene text. NOT applied to silencing-the-lion
+# (a sharp tailored suit, where the shirt is meant to be tucked) or the armor scenes
+# (no shirt to tuck).
+_UNTUCKED_SHIRT_SCENES = frozenset({
+    "walking-on-water",
+    "commanding-the-storm",
+    "breaking-every-chain",
+    "walking-through-fire",
+    "anointed-with-oil",
+    "eagle-wings",
+    "receiving-the-mantle",
+})
+
+_UNTUCKED_SHIRT_DIRECTIVE = (
+    "SHIRT FIT — this is a hard requirement, override any default styling instinct: the shirt "
+    "(or top) is worn OUTSIDE the trousers, hanging loose and UNTUCKED, its hem falling "
+    "naturally below the waistline and fully covering it. Do NOT tuck the shirt into the "
+    "trousers, do NOT tuck it behind a belt, and show no waistband, belt or trouser top at the "
+    "front — the loose shirt hem hides them. Any long sleeves stay worn down to the wrist and "
+    "unfolded (not rolled or pushed up), and the shirt is fully and properly buttoned. The "
+    "trousers are loose and free-cut, never tight, slim or skinny."
+)
+
 _CUSTOM_PROMPT_WRAPPER = (
     "User's personal customization — apply it faithfully, but inside the scene, never "
     "instead of it. It may cover clothing, accessories, hair, posture, motion, extra "
@@ -127,6 +152,9 @@ def build_prompt(scene_id: str, custom_prompt: str | None = None) -> str:
         _SIZE_DIRECTIVE,
         _WARDROBE_DIRECTIVE,
     ]
+
+    if scene_id in _UNTUCKED_SHIRT_SCENES:
+        parts.append(_UNTUCKED_SHIRT_DIRECTIVE)
 
     if custom_prompt:
         custom = custom_prompt.strip()
