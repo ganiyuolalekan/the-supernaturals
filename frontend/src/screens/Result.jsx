@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 // ---------------------------------------------------------------------------
 // Campaign links — every shared image carries these three calls to action:
@@ -18,27 +18,74 @@ const SHARE_MESSAGE = [
 ].join('\n')
 
 // ---------------------------------------------------------------------------
+// Image loaders — HTMLImageElement + <canvas> instead of createImageBitmap /
+// OffscreenCanvas. The latter two are unreliable inside in-app browsers
+// (Instagram/WhatsApp/Facebook webviews), which is exactly where most people
+// open a shared link. These plain-DOM APIs work everywhere.
+// ---------------------------------------------------------------------------
+function loadImageFromUrl(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(new Error(`Failed to load image: ${url}`))
+    img.src = url
+  })
+}
+
+async function loadImageFromBlob(blob) {
+  const url = URL.createObjectURL(blob)
+  try {
+    return await loadImageFromUrl(url)
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
+// Promise wrapper for canvas.toBlob, with a toDataURL fallback for the rare
+// engine that lacks toBlob.
+function canvasToBlob(canvas, type = 'image/jpeg', quality = 0.93) {
+  return new Promise((resolve, reject) => {
+    if (canvas.toBlob) {
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error('canvas.toBlob returned null'))),
+        type,
+        quality,
+      )
+      return
+    }
+    try {
+      const dataUrl = canvas.toDataURL(type, quality)
+      const [meta, b64] = dataUrl.split(',')
+      const mime = meta.match(/:(.*?);/)[1]
+      const bin = atob(b64)
+      const bytes = new Uint8Array(bin.length)
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+      resolve(new Blob([bytes], { type: mime }))
+    } catch (err) {
+      reject(err)
+    }
+  })
+}
+
+// ---------------------------------------------------------------------------
 // Watermark helper
 // Draws the generated portrait onto a canvas, stamps logo_stamp.png in the
 // top-right corner, and adds a "Register here" barcode in the bottom-left.
 // ---------------------------------------------------------------------------
 async function applyWatermark(imageBlob) {
-  // 1. Load the source image
-  const imgBitmap = await createImageBitmap(imageBlob)
+  // Load the portrait, logo and barcode (logo/barcode served from /public)
+  const [img, logoImg, barcodeImg] = await Promise.all([
+    loadImageFromBlob(imageBlob),
+    loadImageFromUrl('/logo_stamp.png'),
+    loadImageFromUrl('/registration_barcode.png'),
+  ])
 
-  // 2. Load the logo and barcode (served from /public)
-  const logoRes = await fetch('/logo_stamp.png')
-  const logoBitmap = await createImageBitmap(await logoRes.blob())
-
-  const barcodeRes = await fetch('/registration_barcode.png')
-  const barcodeBitmap = await createImageBitmap(await barcodeRes.blob())
-
-  const W = imgBitmap.width
-  const H = imgBitmap.height
+  const W = img.naturalWidth || img.width
+  const H = img.naturalHeight || img.height
 
   // Logo sizing: 28% of image width, preserving aspect ratio
   const logoW = Math.round(W * 0.28)
-  const logoH = Math.round(logoW * (logoBitmap.height / logoBitmap.width))
+  const logoH = Math.round(logoW * (logoImg.naturalHeight / logoImg.naturalWidth))
 
   // Top-right, 2.5% padding from each edge
   const pad = Math.round(W * 0.025)
@@ -48,7 +95,7 @@ async function applyWatermark(imageBlob) {
   // Barcode sizing: 17% of image width, preserving aspect ratio
   const barcodePad = Math.round(W * 0.045)
   const barcodeW = Math.round(W * 0.17)
-  const barcodeH = Math.round(barcodeW * (barcodeBitmap.height / barcodeBitmap.width))
+  const barcodeH = Math.round(barcodeW * (barcodeImg.naturalHeight / barcodeImg.naturalWidth))
   const barcodeX = barcodePad
   const barcodeCenterX = barcodeX + barcodeW / 2
   const fontSize = Math.max(12, Math.round(W * 0.018))
@@ -59,14 +106,16 @@ async function applyWatermark(imageBlob) {
   const barcodeBottomY = Math.round(H * 0.82)
   const barcodeY = barcodeBottomY - barcodeH
 
-  // 3. Composite on an off-screen canvas
-  const canvas = new OffscreenCanvas(W, H)
+  // Composite on a standard canvas element
+  const canvas = document.createElement('canvas')
+  canvas.width = W
+  canvas.height = H
   const ctx = canvas.getContext('2d')
 
-  ctx.drawImage(imgBitmap, 0, 0, W, H)
+  ctx.drawImage(img, 0, 0, W, H)
   ctx.globalAlpha = 0.93   // 7% transparent
-  ctx.drawImage(logoBitmap, logoX, logoY, logoW, logoH)
-  ctx.drawImage(barcodeBitmap, barcodeX, barcodeY, barcodeW, barcodeH)
+  ctx.drawImage(logoImg, logoX, logoY, logoW, logoH)
+  ctx.drawImage(barcodeImg, barcodeX, barcodeY, barcodeW, barcodeH)
   ctx.globalAlpha = 1.0    // reset
 
   // "REGISTER HERE" label, bold and centered above the barcode
@@ -76,8 +125,8 @@ async function applyWatermark(imageBlob) {
   ctx.fillStyle = '#ffffff'
   ctx.fillText('REGISTER HERE', barcodeCenterX, barcodeY - labelGap)
 
-  // 4. Export as JPEG (smaller file size for sharing)
-  return canvas.convertToBlob({ type: 'image/jpeg', quality: 0.93 })
+  // Export as JPEG (smaller file size for sharing)
+  return canvasToBlob(canvas, 'image/jpeg', 0.93)
 }
 
 // ---------------------------------------------------------------------------
@@ -100,6 +149,52 @@ export default function Result({ data, onReset }) {
   // 'idle' | 'copied' | 'manual' — 'manual' reveals the caption for hand-copying
   // when the browser blocks clipboard writes (common in in-app browsers).
   const [copyState, setCopyState] = useState('idle')
+  // The finished, shareable image (watermarked when possible). Prepared up
+  // front so the Download/Share taps do NO async work — critical on mobile
+  // Safari and in-app browsers, which drop the user-gesture "trust" after any
+  // `await`, silently killing downloads and blocking navigator.share.
+  const [asset, setAsset] = useState(null)  // { url, file }
+  const assetRef = useRef(null)
+
+  useEffect(() => {
+    let cancelled = false
+    let objectUrl
+    setAsset(null)
+    assetRef.current = null
+
+    ;(async () => {
+      let rawBlob
+      try {
+        rawBlob = await fetchImageBlob(image_url)
+      } catch {
+        return  // nothing we can do; buttons stay in "Preparing…"
+      }
+
+      // Watermark if the browser can; otherwise fall back to the raw image so
+      // download/share still work (just without the stamp) rather than failing.
+      let outBlob
+      try {
+        outBlob = await applyWatermark(rawBlob)
+      } catch {
+        outBlob = rawBlob
+      }
+      if (cancelled) return
+
+      objectUrl = URL.createObjectURL(outBlob)
+      const type = outBlob.type || 'image/jpeg'
+      const ext = type.includes('png') ? 'png' : 'jpg'
+      const safeName = name?.replace(/\s+/g, '-') || 'me'
+      const file = new File([outBlob], `supernatural-portrait-${safeName}.${ext}`, { type })
+      const prepared = { url: objectUrl, file }
+      assetRef.current = prepared
+      setAsset(prepared)
+    })()
+
+    return () => {
+      cancelled = true
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [image_url, name])
 
   const copyShareMessage = async () => {
     try {
@@ -111,63 +206,67 @@ export default function Result({ data, onReset }) {
     }
   }
 
-  const handleDownload = async () => {
-    try {
-      const rawBlob = await fetchImageBlob(image_url)
-      const watermarked = await applyWatermark(rawBlob)
-
-      const url = URL.createObjectURL(watermarked)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `supernatural-portrait-${name?.replace(/\s+/g, '-') || 'me'}.jpg`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-
-      setDownloaded(true)
-      setTimeout(() => setDownloaded(false), 3000)
-    } catch {
-      // Fallback: open in new tab without watermark
-      window.open(image_url, '_blank')
-    }
+  // Synchronous — must run inside the tap gesture, no awaits before a.click().
+  const handleDownload = () => {
+    const ready = assetRef.current
+    if (!ready) return
+    const a = document.createElement('a')
+    a.href = ready.url
+    a.download = ready.file.name
+    a.rel = 'noopener'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setDownloaded(true)
+    setTimeout(() => setDownloaded(false), 3000)
   }
 
   const handleShare = async () => {
-    setSharing(true)
-    try {
-      let file
-      try {
-        const rawBlob = await fetchImageBlob(image_url)
-        const watermarked = await applyWatermark(rawBlob)
-        file = new File([watermarked], 'supernatural-portrait.jpg', { type: 'image/jpeg' })
-      } catch {
-        // Can't watermark — will fall back to URL share
-      }
+    const ready = assetRef.current
+    const canShareFile =
+      !!ready && navigator.canShare?.({ files: [ready.file] })
 
-      if (navigator.share) {
+    // Native share sheet. Call navigator.share FIRST, with no await ahead of
+    // it, so the user gesture is still active (iOS requirement).
+    if (navigator.share && canShareFile) {
+      setSharing(true)
+      try {
         // No `title` — some targets (WhatsApp, Telegram) prepend it to the
         // body, which put an extra headline above the caption.
-        const shareData = {
-          text: SHARE_MESSAGE,
-          ...(file && navigator.canShare?.({ files: [file] }) ? { files: [file] } : {}),
-        }
-        await navigator.share(shareData)
+        await navigator.share({ text: SHARE_MESSAGE, files: [ready.file] })
         setShared(true)
         setTimeout(() => setShared(false), 3000)
-      } else {
-        // Desktop fallback — copy the caption (links and all) and save the
-        // image, so the post can be assembled by hand.
-        await copyShareMessage()
-        handleDownload()
+      } catch (err) {
+        // AbortError = user dismissed the sheet; anything else = save instead.
+        if (err.name !== 'AbortError') handleDownload()
+      } finally {
+        setSharing(false)
       }
-    } catch (err) {
-      if (err.name !== 'AbortError') {
-        handleDownload()
-      }
-    } finally {
-      setSharing(false)
+      return
     }
+
+    // Text-only share (no file support) — still opens the native sheet.
+    if (navigator.share) {
+      setSharing(true)
+      try {
+        await navigator.share({ text: SHARE_MESSAGE })
+        setShared(true)
+        setTimeout(() => setShared(false), 3000)
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          await copyShareMessage()
+          handleDownload()
+        }
+      } finally {
+        setSharing(false)
+      }
+      return
+    }
+
+    // Desktop fallback — copy the caption (links and all) and save the image,
+    // so the post can be assembled by hand.
+    await copyShareMessage()
+    handleDownload()
   }
 
   return (
@@ -200,18 +299,19 @@ export default function Result({ data, onReset }) {
         {/* Download */}
         <button
           onClick={handleDownload}
-          className="w-full py-4 bg-divine-500 hover:bg-divine-400 text-cosmic-950 font-bold text-base rounded-2xl transition-all duration-200 glow-gold hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
+          disabled={!asset}
+          className="w-full py-4 bg-divine-500 hover:bg-divine-400 text-cosmic-950 font-bold text-base rounded-2xl transition-all duration-200 glow-gold hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:hover:scale-100"
         >
-          {downloaded ? '✓ Saved!' : '⬇ Download Image'}
+          {!asset ? 'Preparing…' : downloaded ? '✓ Saved!' : '⬇ Download Image'}
         </button>
 
         {/* Share */}
         <button
           onClick={handleShare}
-          disabled={sharing}
+          disabled={sharing || !asset}
           className="w-full py-4 bg-transparent border-2 border-divine-500 hover:bg-divine-500/10 text-divine-400 hover:text-divine-300 font-bold text-base rounded-2xl transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          {sharing ? 'Preparing…' : shared ? '✓ Shared!' : '↗ Share on Instagram'}
+          {!asset ? 'Preparing…' : sharing ? 'Sharing…' : shared ? '✓ Shared!' : '↗ Share on Instagram'}
         </button>
 
         {/* Share CTAs — register, follow, learn more */}
