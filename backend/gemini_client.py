@@ -69,6 +69,7 @@ def _generate_sync(
     mime_type: str,
     scene_id: str,
     custom_prompt: str | None = None,
+    gender: str | None = None,
 ) -> bytes:
     client = _get_client()
 
@@ -79,8 +80,11 @@ def _generate_sync(
     image_bytes, mime_type = _to_portrait(image_bytes, mime_type)
     log.info("Input resized to %dx%d portrait", _TARGET_W, _TARGET_H)
 
-    prompt = build_prompt(scene_id, custom_prompt)
-    log.info("Generating: scene=%s custom_prompt=%s", scene_id, "yes" if custom_prompt else "no")
+    prompt = build_prompt(scene_id, custom_prompt, gender)
+    log.info(
+        "Generating: scene=%s custom_prompt=%s gender=%s",
+        scene_id, "yes" if custom_prompt else "no", gender or "unspecified",
+    )
 
     contents = [
         types.Content(
@@ -157,9 +161,10 @@ async def generate_supernatural_image(
     mime_type: str,
     scene_id: str,
     custom_prompt: str | None = None,
+    gender: str | None = None,
 ) -> bytes:
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(
         None,
-        partial(_generate_sync, image_bytes, mime_type, scene_id, custom_prompt),
+        partial(_generate_sync, image_bytes, mime_type, scene_id, custom_prompt, gender),
     )

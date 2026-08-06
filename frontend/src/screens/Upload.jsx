@@ -31,6 +31,7 @@ export default function Upload({ onResult, onBack }) {
   const [progressIdx, setProgressIdx] = useState(0)
   const [error, setError] = useState(null)
   const [selectedScene, setSelectedScene] = useState(null)
+  const [gender, setGender] = useState(null) // 'male' | 'female'
   const [activeScene, setActiveScene] = useState(null) // { active_scene_id, schedule } from /active-scene
   const [quota, setQuota] = useState(null) // { used, limit, remaining, cooldown_remaining } from /quota
   const [customPrompt, setCustomPrompt] = useState('')
@@ -96,6 +97,7 @@ export default function Upload({ onResult, onBack }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!imageFile) { setError('Please select a photo.'); return }
+    if (!gender) { setError('Please select your gender.'); return }
     if (!selectedScene) { setError('Please select a scene below.'); return }
 
     setLoading(true)
@@ -105,6 +107,7 @@ export default function Upload({ onResult, onBack }) {
     const formData = new FormData()
     formData.append('image', imageFile)
     formData.append('scene_id', selectedScene.id)
+    formData.append('gender', gender)
     if (customPrompt.trim()) {
       formData.append('custom_prompt', customPrompt.trim())
     }
@@ -229,6 +232,34 @@ export default function Upload({ onResult, onBack }) {
           />
         </div>
 
+        {/* Gender — women are dressed in a modest flowing gown instead of trousers */}
+        <div>
+          <label className="block text-sm font-semibold text-slate-300 mb-2">Gender</label>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { value: 'male', label: 'Male', icon: '♂' },
+              { value: 'female', label: 'Female', icon: '♀' },
+            ].map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setGender(opt.value)}
+                className={`flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-semibold transition-all duration-200
+                  ${gender === opt.value
+                    ? 'border-divine-500 bg-divine-500/10 text-white'
+                    : 'border-slate-700 bg-cosmic-800 text-slate-300 hover:border-slate-500'}`}
+              >
+                <span className="text-lg leading-none">{opt.icon}</span>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+            Women are styled in a modest, free-flowing gown to match the scene (never trousers),
+            with a light, natural touch-up — your face and complexion stay exactly as they are.
+          </p>
+        </div>
+
         {/* Scene picker */}
         <ScenePicker
           selected={selectedScene}
@@ -293,16 +324,18 @@ export default function Upload({ onResult, onBack }) {
         {/* Submit */}
         <button
           type="submit"
-          disabled={loading || !selectedScene || !imageFile || outOfQuota}
+          disabled={loading || !selectedScene || !imageFile || !gender || outOfQuota}
           className="w-full py-4 bg-divine-500 hover:bg-divine-400 disabled:bg-slate-700 disabled:cursor-not-allowed text-cosmic-950 disabled:text-slate-400 font-bold text-base rounded-2xl transition-all duration-200 glow-gold disabled:shadow-none hover:scale-[1.02] active:scale-95"
         >
           {loading
             ? 'Generating…'
             : outOfQuota
               ? 'Daily Limit Reached — Come Back Tomorrow'
-              : !selectedScene
-                ? 'Select a Scene to Continue'
-                : 'Generate My Supernatural Image ✦'}
+              : !gender
+                ? 'Select Your Gender to Continue'
+                : !selectedScene
+                  ? 'Select a Scene to Continue'
+                  : 'Generate My Supernatural Image ✦'}
         </button>
       </form>
 

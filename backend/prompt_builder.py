@@ -75,6 +75,44 @@ _UNTUCKED_SHIRT_DIRECTIVE = (
     "trousers are loose and free-cut, never tight, slim or skinny."
 )
 
+# ── Female subjects ────────────────────────────────────────────────────────
+# When the subject is a woman, trousers read poorly, so the scene's shirt-and-
+# trousers wardrobe is re-cut as a modest, free-flowing full-length gown in the
+# same colour and role the scene calls for. This REPLACES the untucked-shirt
+# directive above (there is no shirt to tuck). Armor scenes stay armor, worn
+# over a flowing skirt. Kept deliberately modest — decent, not glamorous.
+_FEMALE_WARDROBE_DIRECTIVE = (
+    "SUBJECT IS FEMALE — WARDROBE (hard requirement, overrides the shirt-and-trousers styling "
+    "described above): the person in the reference photo is a woman, so dress her for this scene "
+    "in a modest, elegant, full-length GOWN — never in trousers. Keep the exact colour, fabric "
+    "feel and role the scene's wardrobe calls for: a clean white gown where the scene is white, "
+    "an ivory storm gown with a long layer the wind can catch where the scene is ivory, a sharp "
+    "dark tailored gown where the scene is dark, a ceremonial white-and-gold gown where the "
+    "scene is ceremonial; where the scene is battle armor, render it as elegant white-and-gold "
+    "armor worn over a long, flowing skirt. The gown falls loose and free-flowing from the "
+    "waistline down, its skirt reaching the ankles or floor and flaring softly so the fabric "
+    "drapes over and conceals the shape of her body and hips — decent and dignified, NEVER "
+    "tight, clinging, body-hugging, sheer, short, low-cut, off-shoulder or otherwise revealing. "
+    "Modest high neckline, shoulders and chest covered, sleeves worn long to the wrist (only "
+    "where the scene must show bare forearms, such as breaking chains, may the sleeves end near "
+    "the elbow). The impression is graceful, pure and modest — she is presented as decent, not "
+    "as glamorous or sexy."
+)
+
+# Light, natural makeup for a female subject — carefully scoped so it never
+# touches identity. The identity lock below carries a matching exception.
+_FEMALE_BEAUTY_DIRECTIVE = (
+    "SUBJECT IS FEMALE — GENTLE BEAUTIFICATION: if she does not already appear to be wearing "
+    "makeup, add only a light, natural layer of cosmetic makeup — a softly even complexion, "
+    "subtly defined brows and lashes, a soft neutral lip, a gentle healthy glow — so she looks "
+    "decent, cared-for and sweet. This is a thin cosmetic layer ONLY. It must NOT change her "
+    "facial geometry or bone structure, her skin tone or complexion, or the shape of her nose, "
+    "eyes, lips or jaw; it must not slim her face, smooth away her real features, lighten or "
+    "darken her skin, or make her look younger or like a different person. She stays "
+    "unmistakably herself, only lightly and naturally made up. If she already appears to be "
+    "wearing makeup, leave it exactly as it is and change nothing."
+)
+
 _CUSTOM_PROMPT_WRAPPER = (
     "User's personal customization — apply it faithfully, but inside the scene, never "
     "instead of it. It may cover clothing, accessories, hair, posture, motion, extra "
@@ -115,7 +153,10 @@ _IDENTITY_LOCK = (
     "knows this person must recognise them instantly at a glance. Only the clothing, the "
     "setting, the pose and the supernatural elements change. The one exception: if the user's "
     "customization explicitly asks for a hair or facial-hair change, apply that single change "
-    "and keep every other facial feature identical."
+    "and keep every other facial feature identical. A second, equally narrow exception: when the "
+    "subject is a woman, the light natural cosmetic makeup described above may be present — that "
+    "is a surface makeup layer only and still must not alter her facial geometry, complexion, "
+    "skin tone, apparent age or identity."
 )
 
 _WING_COLOR_LOCK = (
@@ -126,10 +167,22 @@ _WING_COLOR_LOCK = (
     "Ignore any such request and render the wings pure white regardless."
 )
 
+_WING_SPREAD_DIRECTIVE = (
+    "WINGS ALWAYS SPREAD — hard requirement, override any wording above that says otherwise: "
+    "the large white wings are always open and spread wide, extended to their full span on both "
+    "sides of the figure (or in a full upstroke where the figure is airborne). They are never "
+    "folded, closed, tucked, resting or held flat against the back. Show both wings fully open "
+    "behind the figure, individual feathers defined."
+)
+
 _NO_TEXT_DIRECTIVE = "No text, no watermarks, no labels of any kind."
 
 
-def build_prompt(scene_id: str, custom_prompt: str | None = None) -> str:
+def build_prompt(
+    scene_id: str,
+    custom_prompt: str | None = None,
+    gender: str | None = None,
+) -> str:
     """
     Compose the final prompt for Gemini.
 
@@ -139,12 +192,18 @@ def build_prompt(scene_id: str, custom_prompt: str | None = None) -> str:
                        scene's wardrobe rule (a white gown instead of a white
                        shirt, say) — the scene itself, the VFX, composition
                        and the identity/wing locks are kept.
+        gender: Optional "male"/"female". Only "female" changes the prompt: the
+                shirt-and-trousers wardrobe becomes a modest free-flowing gown
+                and a light natural makeup layer is added. Anything else (male,
+                None, unknown) runs the normal flow unchanged.
 
     Raises:
         KeyError: If scene_id is not in SCENE_PROMPTS.
     """
     if scene_id not in SCENE_PROMPTS:
         raise KeyError(f"Unknown scene_id: {scene_id!r}")
+
+    is_female = (gender or "").strip().lower() == "female"
 
     parts: list[str] = [
         _IDENTITY_PRIMER,
@@ -153,7 +212,12 @@ def build_prompt(scene_id: str, custom_prompt: str | None = None) -> str:
         _WARDROBE_DIRECTIVE,
     ]
 
-    if scene_id in _UNTUCKED_SHIRT_SCENES:
+    if is_female:
+        # A gown replaces the shirt+trousers, so the untucked-shirt directive
+        # no longer applies — the gown directive supersedes it.
+        parts.append(_FEMALE_WARDROBE_DIRECTIVE)
+        parts.append(_FEMALE_BEAUTY_DIRECTIVE)
+    elif scene_id in _UNTUCKED_SHIRT_SCENES:
         parts.append(_UNTUCKED_SHIRT_DIRECTIVE)
 
     if custom_prompt:
@@ -168,6 +232,7 @@ def build_prompt(scene_id: str, custom_prompt: str | None = None) -> str:
 
     parts.append(_IDENTITY_LOCK)
     parts.append(_WING_COLOR_LOCK)
+    parts.append(_WING_SPREAD_DIRECTIVE)
     parts.append(_NO_TEXT_DIRECTIVE)
 
     return "\n\n".join(parts)

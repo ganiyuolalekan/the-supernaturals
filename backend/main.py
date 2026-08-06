@@ -128,6 +128,7 @@ async def generate(
     image: UploadFile = File(...),
     scene_id: str = Form(..., min_length=1, max_length=50),
     custom_prompt: str | None = Form(default=None, max_length=500),
+    gender: str | None = Form(default=None, max_length=20),
 ):
     client_ip = request.client.host if request.client else "unknown"
 
@@ -210,6 +211,7 @@ async def generate(
                     image.content_type or "image/jpeg",
                     scene_id=scene_id,
                     custom_prompt=custom_prompt,
+                    gender=gender,
                 )
             except RuntimeError as exc:
                 log.error("Gemini generation error: %s", exc)

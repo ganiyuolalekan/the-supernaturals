@@ -13,6 +13,15 @@ COOLDOWN_SECONDS = 300  # 5 minutes
 _client = None
 _client_lock = threading.Lock()
 
+_TRUTHY = {"1", "true", "yes", "on"}
+
+
+def _rate_limit_disabled() -> bool:
+    """When RATE_LIMIT_DISABLED is truthy, all limiting is bypassed and
+    Supabase is never touched — for local testing so generations run freely.
+    Read live (not cached) so it can be flipped without restarting logic."""
+    return os.getenv("RATE_LIMIT_DISABLED", "").strip().lower() in _TRUTHY
+
 # Per-process fallback store, used whenever Supabase is unconfigured or
 # unreachable. Limits then apply per running instance and reset on restart —
 # weaker than the Supabase-backed version, but far better than failing open
@@ -69,6 +78,8 @@ def _save_row(ip: str, row: dict) -> None:
 
 def _check_rate_limit_sync(ip: str) -> tuple[bool, str | None, int | None]:
     """Returns (allowed, error_code, retry_after_seconds)."""
+    if _rate_limit_disabled():
+        return True, None, None
     today = date.today().isoformat()
     row = _load_row(ip)
 
@@ -93,6 +104,8 @@ async def check_rate_limit(ip: str) -> tuple[bool, str | None, int | None]:
 
 
 def _record_generation_sync(ip: str) -> None:
+    if _rate_limit_disabled():
+        return
     today = date.today().isoformat()
     now = datetime.now(timezone.utc).isoformat()
     row = _load_row(ip)
@@ -116,6 +129,8 @@ def _full_quota() -> dict:
 
 
 def _get_quota_sync(ip: str) -> dict:
+    if _rate_limit_disabled():
+        return _full_quota()
     today = date.today().isoformat()
     row = _load_row(ip)
 
@@ -150,6 +165,13 @@ async def get_quota(ip: str) -> dict:
 # ---------------------------------------------------------------------------
 
 def _check_connection_sync() -> dict:
+    if _rate_limit_disabled():
+        return {
+            "configured": False,
+            "connected": False,
+            "store": "disabled",
+            "error": "RATE_LIMIT_DISABLED is set — rate limiting is off (local testing)",
+        }
     url = os.getenv("SUPABASE_URL", "")
     key = os.getenv("SUPABASE_KEY", "")
     if not url or not key:

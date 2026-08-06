@@ -47,7 +47,7 @@ dressed in crisp, modern all-white: a clean white long-sleeved shirt with the sl
 down and unfolded, fully and properly buttoned, left untucked over loose, free-cut white
 trousers (not tight or slim), the hems darkened and clinging where they meet the sea, feet
 bare on the water—contemporary tailoring with visible fabric weave and stitching, not a robe
-or gown; large white wings are folded back, individual feathers defined. The water surface directly beneath each footstep glows with faint golden-white
+or gown; large white wings are spread wide to their full span, individual feathers defined. The water surface directly beneath each footstep glows with faint golden-white
 ripples radiating outward like a pulse, as though the sea itself recognizes his authority.
 The lighting is cinematic—strong volumetric god rays pierce downward through breaking storm
 clouds, moonlight catches the water surface, and strong rim lighting traces his silhouette
@@ -100,7 +100,7 @@ no drama, no exertion, effortless dominion—looking down at the lion with calm,
 authority, as though this submission is not a surprise. He is dressed in sharply tailored
 modern black—a fitted single-breasted jacket open at the collar over a crisp white shirt,
 slim black trousers and clean boots, a thin line of gold detail at the cuffs and collar;
-understated, expensive, unmistakably present-day; large white wings rest naturally folded behind him,
+understated, expensive, unmistakably present-day; large white wings are spread wide to their full span behind him,
 individual feathers defined and still. Before him, a massive African lion—fully grown,
 muscular, heavy-maned, visibly powerful but completely subdued—is prostrate: front legs
 folded, enormous head bowed to the ground, eyes averted, body low. The air between them is
@@ -141,7 +141,7 @@ long-sleeved shirt with the sleeves worn down and unfolded, fully and properly b
 left untucked, over loose, free-cut white trousers (not tight or slim), crisply pressed and
 spotless inside the inferno, not a fibre burned, not a thread scorched, not a trace of soot or
 smoke on the fabric; clean contemporary tailoring, no robes; large white wings
-spread partially open, feathers unsinged, the orange firelight reflecting off each one.
+spread wide to their full span, feathers unsinged, the orange firelight reflecting off each one.
 Beside him and one step behind, a fourth figure walks—tall, robed entirely in brilliant, dense
 white light, form present but not fully defined, clearly supernatural—moving with the same
 unhurried calm. The lighting is entirely from the fire—massive warm orange illumination from
@@ -198,8 +198,8 @@ brilliant solar gold at the apex. Soaring, free, biblical scale.""",
 king. He is standing on a dark volcanic rock, looking directly into the camera with a calm,
 powerful expression. His armor is an elegant masterpiece of polished gold and layered white
 fabric with visible weaves and stitching—sculpted to a clean, modern, athletic silhouette
-rather than an ancient robed one. His massive white wings show individual, highly
-detailed feathers. The lighting is cinematic and dramatic—a low-angle shot with strong
+rather than an ancient robed one. His massive white wings are spread wide to their full span, showing individual,
+highly detailed feathers. The lighting is cinematic and dramatic—a low-angle shot with strong
 volumetric god rays breaking through a dark, moody sky, casting realistic shadows and bright
 highlights on his face and armor. In the blurry background, a massive army of thousands of
 armored angels stands in a grand mountain pass. Dark, cinematic color grading, epic biblical
