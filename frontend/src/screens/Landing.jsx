@@ -27,10 +27,12 @@ export default function Landing({ onStart }) {
 
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center text-center max-w-lg gap-6">
-        {/* Conference label */}
-        <span className="text-divine-500 text-sm tracking-[0.25em] uppercase font-semibold">
-          The SuperNaturals 2026
-        </span>
+        {/* Brand logo */}
+        <img
+          src="/supernatural_logo.png"
+          alt="The Issachar Generation — The SuperNaturals 2026"
+          className="w-52 sm:w-64 h-auto drop-shadow-[0_0_35px_rgba(212,175,55,0.35)]"
+        />
 
         {/* Title */}
         <h1 className="font-display text-5xl sm:text-6xl font-bold text-white text-glow leading-tight">

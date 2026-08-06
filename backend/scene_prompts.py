@@ -43,10 +43,11 @@ SCENE_PROMPTS: dict[str, str] = {
 looking up at a supernatural figure walking across the surface of a dark, churning ocean at
 night. He moves forward with slow, deliberate confidence—one foot fully planted on the water,
 the other mid-stride—looking directly into the camera with fearless calm authority. He is
-dressed in crisp, modern all-white: a clean white shirt with the sleeves rolled to the
-forearm worn loose over slim white trousers, the hems darkened and clinging where they meet
-the sea, feet bare on the water—contemporary tailoring with visible fabric weave and stitching,
-not a robe or gown; large white wings are folded back, individual feathers defined. The water surface directly beneath each footstep glows with faint golden-white
+dressed in crisp, modern all-white: a clean white long-sleeved shirt with the sleeves worn
+down and unfolded, fully and properly buttoned, left untucked over loose, free-cut white
+trousers (not tight or slim), the hems darkened and clinging where they meet the sea, feet
+bare on the water—contemporary tailoring with visible fabric weave and stitching, not a robe
+or gown; large white wings are folded back, individual feathers defined. The water surface directly beneath each footstep glows with faint golden-white
 ripples radiating outward like a pulse, as though the sea itself recognizes his authority.
 The lighting is cinematic—strong volumetric god rays pierce downward through breaking storm
 clouds, moonlight catches the water surface, and strong rim lighting traces his silhouette
@@ -59,9 +60,10 @@ warm divine gold on the subject. Epic biblical scale.""",
 commanding a raging storm to stop. He stands at the bow of a battered wooden ship on a
 violently churning sea, both arms raised and spread to each side in a wide commanding posture,
 looking upward into the heart of the storm with calm, absolute authority. He is dressed in a
-modern storm-white ensemble: a fitted off-white shirt buttoned high beneath a long, unlined
-ivory coat that snaps and streams sideways in the gale, slim dark trousers and boots planted
-on the soaked deck—sharp contemporary cut, no robes; massive white wings
+modern storm-white ensemble: an off-white long-sleeved shirt with the sleeves worn down and
+unfolded, fully and properly buttoned and left untucked, beneath a long, unlined ivory coat
+that snaps and streams sideways in the gale, loose, free-cut dark trousers (not tight or slim)
+and boots planted on the soaked deck—contemporary cut, no robes; massive white wings
 spread to full span, each feather straining against the gale but unbroken. Directly before
 him, the storm clouds are splitting open—a dramatic rent in the sky with brilliant golden
 light flooding through the gap—while the sea directly beneath him begins to still in a
@@ -135,9 +137,10 @@ unharmed through the heart of a raging furnace. He strides forward through a cor
 massive, roaring flames—forty-foot walls of orange and white fire rising on both sides of
 him—looking directly into the camera with absolute calm, not a strand of hair displaced,
 not a thread of his clothing darkened. He is dressed in pristine modern white—a white
-long-sleeved shirt and slim white trousers, crisply pressed and spotless inside the inferno,
-not a fibre burned, not a thread scorched, not a trace of soot or smoke on the fabric;
-clean contemporary tailoring, no robes; large white wings
+long-sleeved shirt with the sleeves worn down and unfolded, fully and properly buttoned and
+left untucked, over loose, free-cut white trousers (not tight or slim), crisply pressed and
+spotless inside the inferno, not a fibre burned, not a thread scorched, not a trace of soot or
+smoke on the fabric; clean contemporary tailoring, no robes; large white wings
 spread partially open, feathers unsinged, the orange firelight reflecting off each one.
 Beside him and one step behind, a fourth figure walks—tall, robed entirely in brilliant, dense
 white light, form present but not fully defined, clearly supernatural—moving with the same
@@ -152,8 +155,10 @@ companion as the only cool element in the frame. Epic biblical scale.""",
 anointed directly from heaven. He stands still, eyes gently closed, face tilted slightly
 upward—a posture of deep, active receiving, the stillness of someone fully aware of what is
 happening to them—arms at his sides, palms open. He wears modern white ceremonial dress—a
-long-line tailored white coat worn open over a white shirt buttoned to the collar and slim
-white trousers, fine gold embroidery tracing the lapel, cuffs and hem; the bearing of priest
+long-line tailored white coat worn open over a white long-sleeved shirt with the sleeves worn
+down and unfolded, fully and properly buttoned to the collar and left untucked, and loose,
+free-cut white trousers (not tight or slim), fine gold embroidery tracing the lapel, cuffs
+and hem; the bearing of priest
 and king rendered in contemporary tailoring rather than ancient robes, the embellishment
 catching the descending light; large white wings extend to their fullest span behind him. From
 directly above, a column of luminous golden oil descends from a point of brilliant light high
@@ -173,9 +178,10 @@ scale.""",
 supernatural figure ascending into the sky. He is mid-ascent—feet just clearing a mountain
 ridge below, body rising—looking downward and outward with peaceful, sovereign confidence,
 arms slightly open, a posture between surrender and authority. He is dressed in clean modern
-white—a fitted white shirt and slim white trousers with a long, lightweight ivory overlayer
-that trails and ripples below him, its edges snapping in the updraft; light, aerodynamic,
-contemporary tailoring rather than robes; his large white wings are in full
+white—a white long-sleeved shirt with the sleeves worn down and unfolded, fully and properly
+buttoned and left untucked, over loose, free-cut white trousers (not tight or slim), with a
+long, lightweight ivory overlayer that trails and ripples below him, its edges snapping in the
+updraft; light, aerodynamic, contemporary tailoring rather than robes; his large white wings are in full
 upstroke—massive, powerful, each feather under maximum tension, the translucent edges of
 outermost feathers lit against the sky above, individual barbs visible in razor detail.
 Above him, the sky opens into brilliant golden-white light at high altitude, breaking through
@@ -204,8 +210,9 @@ at the exact moment of receiving a divine mantle of authority. He stands on a hi
 place—a hilltop or elevated ground—both arms raised fully upward, hands open, face raised
 to the sky with complete surrender and holy anticipation—the expression of someone who knows
 what is coming and is choosing to receive it fully. He is dressed in understated modern
-clothing—a plain stone-white shirt with the sleeves rolled to the forearm and dark slim
-trousers, simple and current; the ordinariness of the clothing beneath the burning mantle is
+clothing—a plain stone-white long-sleeved shirt with the sleeves worn down and unfolded, fully
+and properly buttoned and left untucked, and loose, free-cut dark trousers (not tight or slim),
+simple and current; the ordinariness of the clothing beneath the burning mantle is
 deliberate—the body about to receive it is the body of this present-day person;
 large white wings are spread behind him. Descending from a brilliant point of
 white-gold fire in the sky directly above him, a supernatural mantle falls—a living cloak of
