@@ -12,18 +12,30 @@ from dotenv import load_dotenv
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
 
+import usage_tracker
+import availability
 from validator import validate_image
-from gemini_client import generate_supernatural_image, IMAGE_GENERATION_MODELS
+from gemini_client import (
+    generate_supernatural_image,
+    IMAGE_GENERATION_MODELS,
+    QuotaExceededError,
+    register_configured_keys,
+)
 from scene_prompts import has_scene, get_active_scene_id, get_scene_schedule
 from storage import (
     check_rate_limit,
     record_generation,
     get_quota,
     check_connection,
+    global_cap_status,
     DAILY_LIMIT,
 )
 
 load_dotenv()
+
+# Now that .env is loaded, tell the usage tracker the full set of configured
+# keys so its 'all keys exhausted' flag is accurate from the first request.
+register_configured_keys()
 
 app = FastAPI(title="I Am Supernatural — SuperNaturals 2026")
 
@@ -57,6 +69,8 @@ ERROR_MESSAGES = {
     "daily_limit_reached": "You've used all 3 free generations for today. Come back tomorrow!",
     "high_demand": "We're experiencing high demand right now. Please try again in a moment.",
     "generation_failed": "Image generation failed. Please try again.",
+    "capacity_reached": "We've reached today's image limit. The limit resets daily — please come back tomorrow. Thank you for your patience!",
+    "scene_closed": "The scene is closed today. Come back for the next one!",
     "content_policy": "Gemini declined this request. Try a different photo or contact the admin.",
     "invalid_scene": "Unknown scene. Please pick one of the listed scenes.",
     "scene_not_active": "That scene isn't live this week. Please pick this week's scene.",
@@ -99,6 +113,76 @@ async def quota(request: Request):
     return await get_quota(client_ip)
 
 
+def _closed_day_message(today, next_open) -> str:
+    """'Come back Saturday' — names the day and date the app reopens.
+
+    Says "next week's scene" only when reopening actually lands in a different
+    scene week, so the copy stays true if CLOSED_WEEKDAYS is ever changed.
+    """
+    day_name = availability.WEEKDAY_NAMES[next_open.weekday()]
+    days_away = (next_open - today).days
+    when = "tomorrow" if days_away == 1 else f"on {day_name}"
+    new_week = get_active_scene_id(next_open) != get_active_scene_id(today)
+    what = "Next week's scene" if new_week else "The scene"
+    return (
+        f"The scene is closed today. {what} goes live {when}"
+        f" ({next_open.strftime('%d %b')}) — we'll see you then!"
+    )
+
+
+async def _availability() -> dict:
+    """The single source of truth for 'can anyone generate right now?'.
+
+    Three independent gates, checked in the order they matter to a visitor:
+      closed_day  — the app is shut today (Thu/Fri), scene locked, modal shown
+      daily_cap   — the service-wide budget ceiling for today is spent
+      provider    — Gemini itself cut us off (quota/credits)
+    """
+    today = availability.local_today()
+    closed = availability.is_closed(today)
+    next_open = availability.next_open_date(today)
+    cap = await global_cap_status()
+    usage = usage_tracker.snapshot()
+
+    if closed:
+        reason, message = "closed_day", _closed_day_message(today, next_open)
+    elif cap["reached"]:
+        reason, message = "daily_cap", ERROR_MESSAGES["capacity_reached"]
+    elif usage["limited"]:
+        reason, message = "provider_limit", ERROR_MESSAGES["capacity_reached"]
+    else:
+        reason, message = None, None
+
+    return {
+        "generation_available": reason is None,
+        "reason": reason,
+        "message": message,
+        "closed_today": closed,
+        "closed_weekdays": availability.closed_day_names(),
+        "next_open": next_open.isoformat(),
+        "next_open_scene_id": get_active_scene_id(next_open),
+        "today": today.isoformat(),
+        "timezone": str(availability.app_timezone()),
+        "daily_cap": cap,
+        "cap_schedule": availability.cap_schedule_by_name(),
+        "per_user_limit": DAILY_LIMIT,
+        "retry_after_seconds": usage["retry_after_seconds"],
+        "usage": usage,
+    }
+
+
+@app.get("/status")
+async def status():
+    """Service-wide generation status for the UI and for monitoring.
+
+    `generation_available` is False when the app is closed for the day, when the
+    service-wide daily cap is spent, or when Gemini itself cut us off — so the
+    frontend can lock the scene and explain why instead of every visitor
+    discovering it through a failed generation.
+    """
+    return await _availability()
+
+
 @app.get("/debug/gemini")
 async def debug_gemini():
     """Lists all available models and highlights image-generation capable ones."""
@@ -131,6 +215,21 @@ async def generate(
     gender: str | None = Form(default=None, max_length=20),
 ):
     client_ip = request.client.host if request.client else "unknown"
+
+    # Closed day / service-wide daily cap / provider cut-off — all three fail
+    # fast with a friendly explanation, before any work is done, so no visitor
+    # spends an upload (or a quota-blocked request) rediscovering the wall.
+    avail = await _availability()
+    if not avail["generation_available"]:
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "success": False,
+                "error": "scene_closed" if avail["reason"] == "closed_day" else "capacity_reached",
+                "message": avail["message"],
+                "status": avail,
+            },
+        )
 
     # Rate limit check — persisted in Supabase so it survives Render's
     # free-tier instance spinning down and restarting after idle periods.
@@ -205,6 +304,18 @@ async def generate(
 
     try:
         async with _generation_semaphore:
+            # Re-check the cap here, not just at the top: several requests can
+            # clear the entry gate together and only serialise at the semaphore.
+            # Without this the cap can be overshot by the concurrency width.
+            if (await global_cap_status())["reached"]:
+                raise HTTPException(
+                    status_code=429,
+                    detail={
+                        "success": False,
+                        "error": "capacity_reached",
+                        "message": ERROR_MESSAGES["capacity_reached"],
+                    },
+                )
             try:
                 generated_bytes = await generate_supernatural_image(
                     image_bytes,
@@ -212,6 +323,19 @@ async def generate(
                     scene_id=scene_id,
                     custom_prompt=custom_prompt,
                     gender=gender,
+                )
+            except QuotaExceededError as exc:
+                # Gemini's daily image quota is spent — the tracker flag is now
+                # armed, so subsequent requests short-circuit at the pre-check
+                # above. Return the friendly 'come back tomorrow' message.
+                log.warning("Daily Gemini quota reached: %s", exc)
+                raise HTTPException(
+                    status_code=429,
+                    detail={
+                        "success": False,
+                        "error": "capacity_reached",
+                        "message": ERROR_MESSAGES["capacity_reached"],
+                    },
                 )
             except RuntimeError as exc:
                 log.error("Gemini generation error: %s", exc)

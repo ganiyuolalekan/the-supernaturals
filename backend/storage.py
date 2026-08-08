@@ -2,13 +2,21 @@ import os
 import asyncio
 import logging
 import threading
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from functools import partial
+
+from availability import local_today, daily_cap_for
 
 log = logging.getLogger(__name__)
 
-DAILY_LIMIT = 3
+DAILY_LIMIT = 2
 COOLDOWN_SECONDS = 300  # 5 minutes
+
+# Service-wide ceiling on successful generations per day — the spend guard for
+# a fixed campaign budget. The ceiling varies by weekday (see availability.
+# daily_cap_for). Stored as a sentinel row in the same `rate_limits` table (no
+# migration needed): ip="__global__", day=<local date>, count=<used>.
+GLOBAL_CAP_IP = "__global__"
 
 _client = None
 _client_lock = threading.Lock()
@@ -71,7 +79,7 @@ def _save_row(ip: str, row: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Per-IP rate limiting — 3 generations/day + 5 min cooldown between each.
+# Per-IP rate limiting — DAILY_LIMIT generations/day + 5 min cooldown between each.
 # Persisted in Supabase (not in-memory) so limits survive Render's free-tier
 # instance spinning down and restarting after idle periods.
 # ---------------------------------------------------------------------------
@@ -80,7 +88,7 @@ def _check_rate_limit_sync(ip: str) -> tuple[bool, str | None, int | None]:
     """Returns (allowed, error_code, retry_after_seconds)."""
     if _rate_limit_disabled():
         return True, None, None
-    today = date.today().isoformat()
+    today = local_today().isoformat()
     row = _load_row(ip)
 
     if not row or row["day"] != today:
@@ -104,9 +112,13 @@ async def check_rate_limit(ip: str) -> tuple[bool, str | None, int | None]:
 
 
 def _record_generation_sync(ip: str) -> None:
+    # The global counter is a spend guard and is recorded even when per-IP
+    # limiting is switched off for testing — otherwise local runs would spend
+    # real budget invisibly.
+    _record_global_sync()
     if _rate_limit_disabled():
         return
-    today = date.today().isoformat()
+    today = local_today().isoformat()
     now = datetime.now(timezone.utc).isoformat()
     row = _load_row(ip)
     count = row["count"] + 1 if row and row["day"] == today else 1
@@ -119,8 +131,53 @@ async def record_generation(ip: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Service-wide daily cap — how many images the whole app may generate in a day.
+# Counts SUCCESSFUL generations only (record_generation runs after Gemini
+# returns an image), so failed attempts never eat the budget. Deliberately not
+# gated on RATE_LIMIT_DISABLED: this one protects money, not fairness.
+# ---------------------------------------------------------------------------
+
+_global_lock = threading.Lock()
+
+
+def _global_used_sync() -> int:
+    row = _load_row(GLOBAL_CAP_IP)
+    today = local_today().isoformat()
+    if not row or row["day"] != today:
+        return 0
+    return int(row["count"])
+
+
+def _record_global_sync() -> None:
+    with _global_lock:
+        today = local_today().isoformat()
+        _save_row(GLOBAL_CAP_IP, {
+            "day": today,
+            "count": _global_used_sync() + 1,
+            "last_generated_at": datetime.now(timezone.utc).isoformat(),
+        })
+
+
+def _global_cap_status_sync() -> dict:
+    cap = daily_cap_for()
+    used = _global_used_sync()
+    return {
+        "cap": cap,
+        "used": used,
+        "remaining": max(0, cap - used) if cap else None,
+        "reached": bool(cap) and used >= cap,
+    }
+
+
+async def global_cap_status() -> dict:
+    """{cap, used, remaining, reached} for the current local day."""
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, _global_cap_status_sync)
+
+
+# ---------------------------------------------------------------------------
 # Quota lookup — how many generations this IP has used today, for the UI to
-# show "X of 3 left". Read-only; never blocks. Falls back to a full quota if
+# show "X of N left". Read-only; never blocks. Falls back to a full quota if
 # Supabase is unconfigured/unreachable so the UI degrades gracefully.
 # ---------------------------------------------------------------------------
 
@@ -131,7 +188,7 @@ def _full_quota() -> dict:
 def _get_quota_sync(ip: str) -> dict:
     if _rate_limit_disabled():
         return _full_quota()
-    today = date.today().isoformat()
+    today = local_today().isoformat()
     row = _load_row(ip)
 
     if not row or row["day"] != today:

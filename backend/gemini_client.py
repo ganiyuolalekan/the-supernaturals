@@ -2,14 +2,22 @@ import io
 import os
 import asyncio
 import logging
+import threading
 from functools import partial
 from google import genai
 from google.genai import types
 from PIL import Image
 
 from prompt_builder import build_prompt
+import usage_tracker
 
 log = logging.getLogger(__name__)
+
+
+class QuotaExceededError(RuntimeError):
+    """Raised when Gemini rejects the request with a quota / 429 error, i.e.
+    the daily image quota is spent. The caller maps this to a friendly
+    'come back tomorrow' message instead of a generic failure."""
 
 # Target portrait dimensions sent to Gemini as the reference input.
 # Gemini mirrors the input aspect ratio, so pre-cropping to 2:3 portrait
@@ -48,20 +56,67 @@ def _to_portrait(image_bytes: bytes, mime_type: str) -> tuple[bytes, str]:
 
 # Models that support image OUTPUT with reference image INPUT.
 # Tried in order — first one that responds with an image wins.
+#
+# Deliberately kept to a SINGLE model. Two reasons:
+#   1. Each entry is a separate Gemini request, so a fallback chain multiplies
+#      the request count (and how fast quota is spent).
+#   2. Image models are priced VERY differently — gemini-3-pro-image costs
+#      several times gemini-3.1-flash-lite-image per image. A silent fallback to
+#      a pricier model would quietly blow the campaign budget. If you add a
+#      fallback here, check its price on ai.google.dev/gemini-api/docs/pricing
+#      first and redo the budget math.
+#
+# gemini-3.1-flash-lite-image: $30/1M output tokens, 1,120 tokens per 1K image
+# → ~$0.0336/image, the cheapest image model on the Gemini API.
+#
+# History: "gemini-2.5-flash-image-preview" (the original Nano Banana, which had
+# the free 500/day tier) was RETIRED on 15 Jan 2026 and no longer appears in the
+# model list. "gemini-2.5-flash-image" is scheduled for shutdown on 2 Oct 2026.
+# There is no free image tier on any current model — all of them report
+# free_tier_requests limit: 0. Override per-deploy with GEMINI_MODEL in .env.
 IMAGE_GENERATION_MODELS = [
-    "gemini-2.5-flash-image-preview",   # primary — free tier, 500 images/day quota
-    "gemini-3.1-flash-image-preview",   # fallback — newest preview
-    "nano-banana-pro-preview",           # fallback — "Nano Banana Pro" from the project plan
-    "gemini-3-pro-image-preview",        # fallback — Gemini 3 Pro image variant
-    "gemini-2.5-flash-image",           # fallback — stable, requires billing
+    "gemini-3.1-flash-lite-image",   # cheapest image model — ~$0.0336/image
 ]
 
 
-def _get_client() -> genai.Client:
-    api_key = os.getenv("GEMINI_API_KEY", "")
-    if not api_key or api_key == "your_gemini_api_key_here":
-        raise RuntimeError("GEMINI_API_KEY is not set. Add it to backend/.env")
-    return genai.Client(api_key=api_key)
+# ── API keys (multi-key with failover) ──────────────────────────────────────
+# GEMINI_API_KEYS (comma-separated) is the primary source; the app tries each
+# key in order and fails over to the next when one is out of quota/credits.
+# GEMINI_API_KEY (single) is still honoured as a fallback so older configs work.
+# Each key gets a stable, masked id ("1:uCbs") for logs and the usage tracker —
+# the full secret is never logged.
+_client_lock = threading.Lock()
+_clients: dict[str, genai.Client] = {}
+
+
+def _key_id(index: int, key: str) -> str:
+    return f"{index + 1}:{key[-4:]}"
+
+
+def load_keys() -> list[tuple[str, str]]:
+    """Configured keys as (masked_id, key), read live from the environment."""
+    multi = os.getenv("GEMINI_API_KEYS", "").strip()
+    if multi:
+        raw = [k.strip() for k in multi.split(",")]
+    else:
+        raw = [os.getenv("GEMINI_API_KEY", "").strip()]
+    keys = [k for k in raw if k and k != "your_gemini_api_key_here"]
+    return [(_key_id(i, k), k) for i, k in enumerate(keys)]
+
+
+def register_configured_keys() -> None:
+    """Tell the usage tracker the full key set (so it knows when ALL are
+    exhausted). Call after the environment is loaded."""
+    usage_tracker.register_keys([kid for kid, _ in load_keys()])
+
+
+def _client_for(key: str) -> genai.Client:
+    with _client_lock:
+        client = _clients.get(key)
+        if client is None:
+            client = genai.Client(api_key=key)
+            _clients[key] = client
+        return client
 
 
 def _generate_sync(
@@ -71,7 +126,14 @@ def _generate_sync(
     custom_prompt: str | None = None,
     gender: str | None = None,
 ) -> bytes:
-    client = _get_client()
+    keys = load_keys()
+    if not keys:
+        raise RuntimeError(
+            "No Gemini API key configured. Set GEMINI_API_KEYS (comma-separated) "
+            "or GEMINI_API_KEY in backend/.env"
+        )
+    # Keep the tracker's key set current (so 'all keys exhausted' is accurate).
+    usage_tracker.register_keys([kid for kid, _ in keys])
 
     if mime_type in ("image/jpg", "image/webp"):
         mime_type = "image/jpeg"
@@ -82,8 +144,8 @@ def _generate_sync(
 
     prompt = build_prompt(scene_id, custom_prompt, gender)
     log.info(
-        "Generating: scene=%s custom_prompt=%s gender=%s",
-        scene_id, "yes" if custom_prompt else "no", gender or "unspecified",
+        "Generating: scene=%s custom_prompt=%s gender=%s keys=%d",
+        scene_id, "yes" if custom_prompt else "no", gender or "unspecified", len(keys),
     )
 
     contents = [
@@ -106,54 +168,73 @@ def _generate_sync(
     ]
 
     errors: dict[str, str] = {}
-    quota_hit = False
+    any_quota = False
 
-    for model in models_to_try:
-        log.info("Trying model: %s", model)
-        try:
-            response = client.models.generate_content(
-                model=model,
-                contents=contents,
-                config=config,
-            )
-            for candidate in response.candidates:
-                for part in candidate.content.parts:
-                    if part.inline_data and part.inline_data.data:
-                        log.info("Success with model: %s", model)
-                        return part.inline_data.data
+    # Try each key in order; fail over to the next when one is out of
+    # quota/credits. A key already known exhausted today is skipped outright.
+    for key_id, key in keys:
+        if usage_tracker.is_key_exhausted(key_id):
+            log.info("Skipping key %s — already exhausted today", key_id)
+            continue
 
-            finish_reasons = [str(c.finish_reason) for c in response.candidates]
-            errors[model] = f"No image in response. Finish reasons: {finish_reasons}"
-            log.warning("Model %s gave no image. Finish reasons: %s", model, finish_reasons)
+        client = _client_for(key)
+        key_quota_hit = False
 
-        except Exception as exc:
-            msg = str(exc).lower()
-            errors[model] = str(exc)
-            log.error("Model %s error: %s", model, exc)
+        for model in models_to_try:
+            log.info("Trying key %s model %s", key_id, model)
+            usage_tracker.record_request()  # every call counts toward the daily quota
+            try:
+                response = client.models.generate_content(
+                    model=model,
+                    contents=contents,
+                    config=config,
+                )
+                for candidate in response.candidates:
+                    for part in candidate.content.parts:
+                        if part.inline_data and part.inline_data.data:
+                            log.info("Success with key %s model %s", key_id, model)
+                            usage_tracker.record_success(key_id)
+                            return part.inline_data.data
 
-            # Invalid API key — no point trying other models
-            if any(k in msg for k in ("api_key_invalid", "invalid api key", "401", "api key not valid")):
-                raise RuntimeError(
-                    "Your GEMINI_API_KEY is invalid. Check it at https://aistudio.google.com/app/apikey"
-                ) from exc
+                finish_reasons = [str(c.finish_reason) for c in response.candidates]
+                errors[f"{key_id}/{model}"] = f"No image. Finish reasons: {finish_reasons}"
+                usage_tracker.record_failure()
+                log.warning("Key %s model %s gave no image. %s", key_id, model, finish_reasons)
 
-            # Quota/billing — per-model, keep trying but flag it
-            if "429" in msg or "resource_exhausted" in msg or "quota" in msg:
-                quota_hit = True
-                log.warning("Quota hit for model %s, trying next…", model)
-                continue  # try next model
+            except Exception as exc:
+                msg = str(exc).lower()
+                errors[f"{key_id}/{model}"] = str(exc)
+                log.error("Key %s model %s error: %s", key_id, model, exc)
 
-    # All models failed — give a clear actionable error
-    if quota_hit:
-        raise RuntimeError(
-            "BILLING_REQUIRED: Image generation with Gemini requires billing to be enabled. "
-            "The free tier quota for image generation is 0. "
-            "Enable billing at https://aistudio.google.com/billing — "
-            "image generation costs roughly $0.04 per image on the pay-as-you-go plan."
+                # Invalid key — skip this whole key, try the next one.
+                if any(k in msg for k in ("api_key_invalid", "invalid api key", "401", "api key not valid")):
+                    log.warning("Key %s is invalid — failing over to next key", key_id)
+                    break
+
+                # Quota/billing/credits — this key is spent for today. Mark it
+                # and fail over to the next key.
+                if "429" in msg or "resource_exhausted" in msg or "quota" in msg:
+                    any_quota = True
+                    key_quota_hit = True
+                    log.warning("Key %s hit quota — failing over to next key", key_id)
+                    break  # stop trying models on this key; move to next key
+
+                usage_tracker.record_failure()
+
+        if key_quota_hit:
+            usage_tracker.mark_key_exhausted(key_id)  # arms global flag iff all keys spent
+
+    # Every key failed. If any key was quota/credit blocked, this is the
+    # 'come back tomorrow' case (the tracker has armed the flag if ALL are spent).
+    if any_quota:
+        raise QuotaExceededError(
+            "All Gemini keys are out of quota/credits for today. Enable billing "
+            "or add credits at https://aistudio.google.com/billing (image "
+            "generation ≈$0.04/image; there is no free image tier)."
         )
 
-    summary = "\n".join(f"  {m}: {e}" for m, e in errors.items())
-    raise RuntimeError(f"All image generation models failed:\n{summary}")
+    summary = "\n".join(f"  {k}: {e}" for k, e in errors.items())
+    raise RuntimeError(f"All image generation attempts failed:\n{summary}")
 
 
 async def generate_supernatural_image(

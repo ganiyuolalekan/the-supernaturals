@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react'
+import axios from 'axios'
 import Landing from './screens/Landing'
 import Upload from './screens/Upload'
 import Result from './screens/Result'
+import ClosedModal from './components/ClosedModal'
 
 const SESSION_KEY = 'supernaturals_session'
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const STATUS_POLL_MS = 60_000
 
 // Restores screen + result across a tab reload — mobile browsers routinely
 // discard a backgrounded tab's JS state (e.g. switching to WhatsApp and back),
@@ -23,6 +27,25 @@ function loadSession() {
 
 export default function App() {
   const [{ screen, result }, setState] = useState(loadSession)
+  // Service availability lives here rather than in Upload so a closed day can
+  // lock every screen, and so there's one poll for the whole app.
+  const [status, setStatus] = useState(null)
+
+  useEffect(() => {
+    const fetchStatus = () => {
+      axios.get(`${API_URL}/status`)
+        .then(({ data }) => setStatus(data))
+        .catch(() => {
+          // Leave the last known status in place — the backend still enforces
+          // every gate on /generate and returns the reason there.
+        })
+    }
+    fetchStatus()
+    // Poll so the app opens and closes on its own at the day boundary, and
+    // recovers once the daily cap resets — without anyone reloading.
+    const timer = setInterval(fetchStatus, STATUS_POLL_MS)
+    return () => clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     try {
@@ -43,6 +66,8 @@ export default function App() {
       )}
       {screen === 'upload' && (
         <Upload
+          status={status}
+          onStatusChange={setStatus}
           onResult={(data) => { setResult(data); setScreen('result') }}
           onBack={() => setScreen('landing')}
         />
@@ -53,6 +78,9 @@ export default function App() {
           onReset={() => { setResult(null); setScreen('landing') }}
         />
       )}
+
+      {/* Closed day — locks the entire app on top of whatever screen is behind */}
+      {status?.closed_today && <ClosedModal status={status} />}
     </div>
   )
 }

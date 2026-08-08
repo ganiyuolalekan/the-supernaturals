@@ -5,6 +5,10 @@ import { findScene } from '../data/scenes'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
+// Fallback text if /status didn't supply a message but the limit is hit.
+const ERROR_MESSAGES_CAPACITY =
+  "We've reached today's image limit. The limit resets daily — please come back tomorrow."
+
 const REQUIREMENTS = [
   'Front-facing photo, face clearly visible',
   'Well-lit — no heavy shadows on your face',
@@ -23,7 +27,7 @@ const PROGRESS_MESSAGES = [
   'Almost ready…',
 ]
 
-export default function Upload({ onResult, onBack }) {
+export default function Upload({ status, onStatusChange, onResult, onBack }) {
   const [imageFile, setImageFile] = useState(null)
   const [preview, setPreview] = useState(null)
   const [dragging, setDragging] = useState(false)
@@ -54,8 +58,14 @@ export default function Upload({ onResult, onBack }) {
       .catch(() => {
         // Quota badge just won't show if this fails — backend still enforces it.
       })
+
   }, [])
 
+  // Availability is owned by App (one poll for the whole app, so a closed day
+  // can lock every screen). Absent status = assume open; the backend still
+  // enforces every gate on /generate and explains itself there.
+  const serviceAvailable = status ? status.generation_available : true
+  const serviceMessage = status?.message
   const outOfQuota = quota && quota.remaining <= 0
 
   const handleFile = (file) => {
@@ -96,6 +106,7 @@ export default function Upload({ onResult, onBack }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!serviceAvailable) { setError(serviceMessage || ERROR_MESSAGES_CAPACITY); return }
     if (!imageFile) { setError('Please select a photo.'); return }
     if (!gender) { setError('Please select your gender.'); return }
     if (!selectedScene) { setError('Please select a scene below.'); return }
@@ -125,14 +136,16 @@ export default function Upload({ onResult, onBack }) {
       const detail = err.response?.data?.detail
       let msg
       if (typeof detail === 'object') {
+        msg = detail.message
+        // A service-wide gate closed between the last poll and this submit —
+        // adopt the status the backend sent back so the UI locks immediately
+        // (banner, or the closed-day modal) instead of waiting for the poll.
+        if (detail.status) {
+          onStatusChange?.(detail.status)
+        }
         const debug = detail.debug || ''
-        if (debug.includes('BILLING_REQUIRED')) {
-          msg = 'Image generation requires billing to be enabled on your Google AI account. Enable it at aistudio.google.com/billing — cost is ~$0.04 per image.'
-        } else {
-          msg = detail.message
-          if (debug && import.meta.env.DEV) {
-            msg += `\n\nDebug: ${debug}`
-          }
+        if (debug && import.meta.env.DEV) {
+          msg += `\n\nDebug: ${debug}`
         }
         if (detail.quota) setQuota(detail.quota)
       } else {
@@ -156,6 +169,19 @@ export default function Upload({ onResult, onBack }) {
         <p className="text-divine-500 text-xs tracking-widest uppercase font-semibold mb-1">The SuperNaturals 2026</p>
         <h2 className="font-display text-3xl font-bold text-white">Create Your Portrait</h2>
         <p className="text-slate-400 text-sm mt-1">Upload your photo and receive your supernatural image.</p>
+
+        {/* Service-wide daily limit banner — shown when Gemini's quota is spent */}
+        {!serviceAvailable && (
+          <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-700/50 bg-amber-900/20 px-4 py-3">
+            <span className="text-lg">🌙</span>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-amber-200">Today's limit reached</p>
+              <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
+                {serviceMessage || ERROR_MESSAGES_CAPACITY}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Daily quota badge */}
         {quota && (
@@ -185,7 +211,7 @@ export default function Upload({ onResult, onBack }) {
               <p className="text-xs text-slate-400">
                 {outOfQuota
                   ? "You've used all your generations for today — come back tomorrow!"
-                  : 'Each person can create up to 3 portraits a day.'}
+                  : `Each person can create up to ${quota.limit} portrait${quota.limit === 1 ? '' : 's'} a day.`}
               </p>
             </div>
           </div>
@@ -324,18 +350,20 @@ export default function Upload({ onResult, onBack }) {
         {/* Submit */}
         <button
           type="submit"
-          disabled={loading || !selectedScene || !imageFile || !gender || outOfQuota}
+          disabled={loading || !serviceAvailable || !selectedScene || !imageFile || !gender || outOfQuota}
           className="w-full py-4 bg-divine-500 hover:bg-divine-400 disabled:bg-slate-700 disabled:cursor-not-allowed text-cosmic-950 disabled:text-slate-400 font-bold text-base rounded-2xl transition-all duration-200 glow-gold disabled:shadow-none hover:scale-[1.02] active:scale-95"
         >
           {loading
             ? 'Generating…'
-            : outOfQuota
-              ? 'Daily Limit Reached — Come Back Tomorrow'
-              : !gender
-                ? 'Select Your Gender to Continue'
-                : !selectedScene
-                  ? 'Select a Scene to Continue'
-                  : 'Generate My Supernatural Image ✦'}
+            : !serviceAvailable
+              ? "Today's Limit Reached — Come Back Tomorrow"
+              : outOfQuota
+                ? 'Daily Limit Reached — Come Back Tomorrow'
+                : !gender
+                  ? 'Select Your Gender to Continue'
+                  : !selectedScene
+                    ? 'Select a Scene to Continue'
+                    : 'Generate My Supernatural Image ✦'}
         </button>
       </form>
 
