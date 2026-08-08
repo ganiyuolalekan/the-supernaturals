@@ -14,7 +14,7 @@ const SHARE_MESSAGE = [
   `Register: ${REGISTER_URL}`,
   `Follow ${SOCIAL_HANDLE} on Instagram & TikTok`,
   `Learn more: ${ABOUT_URL}`,
-  '#TheSuperNaturals2026',
+  '#TheSuperNaturals',
 ].join('\n')
 
 // ---------------------------------------------------------------------------
@@ -273,7 +273,7 @@ export default function Result({ data, onReset }) {
     <div className="min-h-dvh flex flex-col items-center px-4 py-10">
       {/* Header */}
       <div className="w-full max-w-md mb-6 text-center">
-        <p className="text-divine-500 text-xs tracking-widest uppercase font-semibold mb-1">The SuperNaturals 2026</p>
+        <p className="text-divine-500 text-xs tracking-widest uppercase font-semibold mb-1">The SuperNaturals</p>
         <h2 className="font-display text-3xl font-bold text-white text-glow">
           {name ? `${name}'s Portrait` : 'Your Portrait'}
         </h2>
@@ -290,7 +290,7 @@ export default function Result({ data, onReset }) {
         />
         {/* Overlay badge */}
         <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1.5">
-          <p className="text-divine-500 text-xs font-semibold tracking-wide">#TheSuperNaturals2026</p>
+          <p className="text-divine-500 text-xs font-semibold tracking-wide">#TheSuperNaturals</p>
         </div>
       </div>
 
@@ -350,7 +350,7 @@ export default function Result({ data, onReset }) {
 
           <p className="text-slate-500 text-xs text-center mt-3 leading-relaxed">
             Instagram &amp; TikTok: <span className="text-slate-300 font-medium">{SOCIAL_HANDLE}</span> ·
-            Use <span className="text-divine-500 font-semibold">#TheSuperNaturals2026</span>
+            Use <span className="text-divine-500 font-semibold">#TheSuperNaturals</span>
           </p>
 
           <button

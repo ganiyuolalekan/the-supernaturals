@@ -35,7 +35,7 @@ export default function ClosedModal({ status }) {
           <div className="text-5xl mb-5" aria-hidden="true">🌙</div>
 
           <p className="text-divine-500 text-xs tracking-widest uppercase font-semibold mb-2">
-            The SuperNaturals 2026
+            The SuperNaturals
           </p>
           <h2 className="font-display text-2xl font-bold text-white leading-snug">
             This week's scene has closed

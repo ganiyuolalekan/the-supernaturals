@@ -1,5 +1,5 @@
 """
-Prompt construction for The SuperNaturals 2026.
+Prompt construction for The SuperNaturals.
 
 Single API: build_prompt(scene_id, custom_prompt=None) -> str
 

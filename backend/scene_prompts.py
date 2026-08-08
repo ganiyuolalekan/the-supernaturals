@@ -1,5 +1,5 @@
 """
-10 photorealistic scene prompts for The SuperNaturals 2026.
+10 photorealistic scene prompts for The SuperNaturals.
 
 Scenes kept (per final selection):
   Miracles & Power    : walking-on-water, commanding-the-storm

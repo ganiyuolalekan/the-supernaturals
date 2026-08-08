@@ -37,7 +37,7 @@ load_dotenv()
 # keys so its 'all keys exhausted' flag is accurate from the first request.
 register_configured_keys()
 
-app = FastAPI(title="I Am Supernatural — SuperNaturals 2026")
+app = FastAPI(title="I Am Supernatural — The SuperNaturals")
 
 # CORS
 _cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000")

@@ -166,7 +166,7 @@ export default function Upload({ status, onStatusChange, onResult, onBack }) {
         >
           ← Back
         </button>
-        <p className="text-divine-500 text-xs tracking-widest uppercase font-semibold mb-1">The SuperNaturals 2026</p>
+        <p className="text-divine-500 text-xs tracking-widest uppercase font-semibold mb-1">The SuperNaturals</p>
         <h2 className="font-display text-3xl font-bold text-white">Create Your Portrait</h2>
         <p className="text-slate-400 text-sm mt-1">Upload your photo and receive your supernatural image.</p>
 
