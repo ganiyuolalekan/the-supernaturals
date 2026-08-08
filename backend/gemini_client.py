@@ -66,16 +66,21 @@ def _to_portrait(image_bytes: bytes, mime_type: str) -> tuple[bytes, str]:
 #      fallback here, check its price on ai.google.dev/gemini-api/docs/pricing
 #      first and redo the budget math.
 #
-# gemini-3.1-flash-lite-image: $30/1M output tokens, 1,120 tokens per 1K image
-# → ~$0.0336/image, the cheapest image model on the Gemini API.
+# gemini-2.5-flash-image: $30/1M output tokens, 1,290 tokens per 1024px image
+# → ~$0.039/image. Chosen over gemini-3.1-flash-lite-image (~$0.0336) because
+# the lite model's output quality was visibly worse on these portraits.
+#
+# ⚠ SHUTDOWN 2 OCT 2026. This model is scheduled for retirement partway through
+# the campaign — after that date it will 404 and generation stops dead. Before
+# then, switch GEMINI_MODEL to gemini-3.1-flash-image (the full model, NOT the
+# lite one) and re-check the budget: it is priced higher, from ~$0.045/image.
 #
 # History: "gemini-2.5-flash-image-preview" (the original Nano Banana, which had
 # the free 500/day tier) was RETIRED on 15 Jan 2026 and no longer appears in the
-# model list. "gemini-2.5-flash-image" is scheduled for shutdown on 2 Oct 2026.
-# There is no free image tier on any current model — all of them report
-# free_tier_requests limit: 0. Override per-deploy with GEMINI_MODEL in .env.
+# model list. There is no free image tier on any current model — all of them
+# report free_tier_requests limit: 0. Override per-deploy with GEMINI_MODEL.
 IMAGE_GENERATION_MODELS = [
-    "gemini-3.1-flash-lite-image",   # cheapest image model — ~$0.0336/image
+    "gemini-2.5-flash-image",   # ~$0.039/image — retires 2 Oct 2026
 ]
 
 
