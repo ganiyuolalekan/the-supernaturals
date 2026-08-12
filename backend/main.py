@@ -14,6 +14,7 @@ log = logging.getLogger(__name__)
 
 import usage_tracker
 import availability
+import vault
 from validator import validate_image
 from gemini_client import (
     generate_supernatural_image,
@@ -206,6 +207,99 @@ async def debug_gemini():
         return {"ok": False, "error": str(exc)}
 
 
+async def _run_generation(
+    image_bytes: bytes,
+    content_type: str | None,
+    *,
+    scene_id: str,
+    custom_prompt: str | None,
+    gender: str | None,
+    enforce_cap: bool,
+) -> bytes:
+    """Run one Gemini generation through the concurrency regulator.
+
+    Shared by the public /generate path and the owner /vault/generate path.
+    `enforce_cap` re-checks the service-wide daily cap inside the semaphore
+    (public path only) — the owner path passes False so it is never blocked by
+    the campaign budget ceiling. Maps provider errors to friendly HTTP errors.
+    """
+    global _queue_depth
+    async with _queue_lock:
+        if _queue_depth >= MAX_QUEUE_DEPTH:
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "success": False,
+                    "error": "high_demand",
+                    "message": ERROR_MESSAGES["high_demand"],
+                },
+            )
+        _queue_depth += 1
+
+    try:
+        async with _generation_semaphore:
+            # Re-check the cap here, not just at the top: several requests can
+            # clear the entry gate together and only serialise at the semaphore.
+            # Without this the cap can be overshot by the concurrency width.
+            if enforce_cap and (await global_cap_status())["reached"]:
+                raise HTTPException(
+                    status_code=429,
+                    detail={
+                        "success": False,
+                        "error": "capacity_reached",
+                        "message": ERROR_MESSAGES["capacity_reached"],
+                    },
+                )
+            try:
+                return await generate_supernatural_image(
+                    image_bytes,
+                    content_type or "image/jpeg",
+                    scene_id=scene_id,
+                    custom_prompt=custom_prompt,
+                    gender=gender,
+                )
+            except QuotaExceededError as exc:
+                # Gemini's daily image quota is spent — the tracker flag is now
+                # armed, so subsequent requests short-circuit at the pre-check
+                # above. Return the friendly 'come back tomorrow' message.
+                log.warning("Daily Gemini quota reached: %s", exc)
+                raise HTTPException(
+                    status_code=429,
+                    detail={
+                        "success": False,
+                        "error": "capacity_reached",
+                        "message": ERROR_MESSAGES["capacity_reached"],
+                    },
+                )
+            except RuntimeError as exc:
+                log.error("Gemini generation error: %s", exc)
+                err_str = str(exc).lower()
+                error_code = "content_policy" if "content policy" in err_str else "generation_failed"
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "success": False,
+                        "error": error_code,
+                        "message": ERROR_MESSAGES[error_code],
+                        "debug": str(exc),
+                    },
+                )
+            except Exception as exc:
+                log.error("Unexpected generation error: %s", exc, exc_info=True)
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "success": False,
+                        "error": "generation_failed",
+                        "message": ERROR_MESSAGES["generation_failed"],
+                        "debug": str(exc),
+                    },
+                )
+    finally:
+        async with _queue_lock:
+            _queue_depth -= 1
+
+
 @app.post("/generate")
 async def generate(
     request: Request,
@@ -287,83 +381,14 @@ async def generate(
             },
         )
 
-    # Concurrency regulator — queue behind the semaphore instead of flooding
-    # Gemini all at once; fast-fail once the queue itself is too deep.
-    global _queue_depth
-    async with _queue_lock:
-        if _queue_depth >= MAX_QUEUE_DEPTH:
-            raise HTTPException(
-                status_code=429,
-                detail={
-                    "success": False,
-                    "error": "high_demand",
-                    "message": ERROR_MESSAGES["high_demand"],
-                },
-            )
-        _queue_depth += 1
-
-    try:
-        async with _generation_semaphore:
-            # Re-check the cap here, not just at the top: several requests can
-            # clear the entry gate together and only serialise at the semaphore.
-            # Without this the cap can be overshot by the concurrency width.
-            if (await global_cap_status())["reached"]:
-                raise HTTPException(
-                    status_code=429,
-                    detail={
-                        "success": False,
-                        "error": "capacity_reached",
-                        "message": ERROR_MESSAGES["capacity_reached"],
-                    },
-                )
-            try:
-                generated_bytes = await generate_supernatural_image(
-                    image_bytes,
-                    image.content_type or "image/jpeg",
-                    scene_id=scene_id,
-                    custom_prompt=custom_prompt,
-                    gender=gender,
-                )
-            except QuotaExceededError as exc:
-                # Gemini's daily image quota is spent — the tracker flag is now
-                # armed, so subsequent requests short-circuit at the pre-check
-                # above. Return the friendly 'come back tomorrow' message.
-                log.warning("Daily Gemini quota reached: %s", exc)
-                raise HTTPException(
-                    status_code=429,
-                    detail={
-                        "success": False,
-                        "error": "capacity_reached",
-                        "message": ERROR_MESSAGES["capacity_reached"],
-                    },
-                )
-            except RuntimeError as exc:
-                log.error("Gemini generation error: %s", exc)
-                err_str = str(exc).lower()
-                error_code = "content_policy" if "content policy" in err_str else "generation_failed"
-                raise HTTPException(
-                    status_code=500,
-                    detail={
-                        "success": False,
-                        "error": error_code,
-                        "message": ERROR_MESSAGES[error_code],
-                        "debug": str(exc),
-                    },
-                )
-            except Exception as exc:
-                log.error("Unexpected generation error: %s", exc, exc_info=True)
-                raise HTTPException(
-                    status_code=500,
-                    detail={
-                        "success": False,
-                        "error": "generation_failed",
-                        "message": ERROR_MESSAGES["generation_failed"],
-                        "debug": str(exc),
-                    },
-                )
-    finally:
-        async with _queue_lock:
-            _queue_depth -= 1
+    generated_bytes = await _run_generation(
+        image_bytes,
+        image.content_type,
+        scene_id=scene_id,
+        custom_prompt=custom_prompt,
+        gender=gender,
+        enforce_cap=True,
+    )
 
     # Images are never persisted server-side — returned directly as a data
     # URL. The original uploaded photo was already discarded after generation.
@@ -376,4 +401,84 @@ async def generate(
         "image_url": data_url,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "quota": await get_quota(client_ip),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Owner unlock (private) — not part of the public campaign flow.
+#
+# These routes let the campaign owner generate any scene on any day, ignoring
+# the daily cap, the per-user limit and the closed-day lock. They are gated by
+# a secret key verified in vault.verify() (only its hash is stored). Registered
+# with include_in_schema=False so they never appear in /openapi.json or /docs.
+# ---------------------------------------------------------------------------
+
+@app.post("/vault/unlock", include_in_schema=False)
+async def vault_unlock(key: str = Form(...)):
+    """Check the owner key so the UI can unlock before the first generation."""
+    if not vault.verify(key):
+        raise HTTPException(
+            status_code=403,
+            detail={"success": False, "error": "unauthorized", "message": "Wrong key."},
+        )
+    return {"success": True}
+
+
+@app.post("/vault/generate", include_in_schema=False)
+async def vault_generate(
+    image: UploadFile = File(...),
+    key: str = Form(...),
+    scene_id: str = Form(..., min_length=1, max_length=50),
+    custom_prompt: str | None = Form(default=None, max_length=500),
+    gender: str | None = Form(default=None, max_length=20),
+):
+    """Owner-only generation. Verifies the key, then bypasses every campaign
+    limit: no closed-day check, no daily cap, no per-user rate limit, and any
+    scene (not just this week's). Does not count toward the public daily cap or
+    anyone's per-user quota. Basic image validation still applies so the model
+    gets a usable input."""
+    if not vault.verify(key):
+        raise HTTPException(
+            status_code=403,
+            detail={"success": False, "error": "unauthorized", "message": "Wrong key."},
+        )
+
+    if not has_scene(scene_id):
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "success": False,
+                "error": "invalid_scene",
+                "message": ERROR_MESSAGES["invalid_scene"],
+            },
+        )
+
+    image_bytes = await image.read()
+
+    is_valid, error_code = validate_image(image_bytes, image.filename, image.content_type)
+    if not is_valid:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "success": False,
+                "error": error_code,
+                "message": ERROR_MESSAGES.get(error_code, "Invalid image."),
+            },
+        )
+
+    generated_bytes = await _run_generation(
+        image_bytes,
+        image.content_type,
+        scene_id=scene_id,
+        custom_prompt=custom_prompt,
+        gender=gender,
+        enforce_cap=False,
+    )
+
+    data_url = f"data:image/png;base64,{base64.b64encode(generated_bytes).decode()}"
+    return {
+        "success": True,
+        "submission_id": str(uuid.uuid4()),
+        "image_url": data_url,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
     }

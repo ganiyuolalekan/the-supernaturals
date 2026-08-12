@@ -27,7 +27,10 @@ const PROGRESS_MESSAGES = [
   'Almost ready…',
 ]
 
-export default function Upload({ status, onStatusChange, onResult, onBack }) {
+export default function Upload({ status, onStatusChange, onResult, onBack, vault = null }) {
+  // Owner unlocked mode: any scene, any day, no caps. Reached only via the
+  // hidden route in App. Flips the endpoint and drops every campaign gate.
+  const isVault = !!vault
   const [imageFile, setImageFile] = useState(null)
   const [preview, setPreview] = useState(null)
   const [dragging, setDragging] = useState(false)
@@ -43,6 +46,10 @@ export default function Upload({ status, onStatusChange, onResult, onBack }) {
   const progressTimerRef = useRef(null)
 
   useEffect(() => {
+    // Vault mode unlocks every scene and has no quota — skip both fetches so
+    // the picker shows all scenes and no per-user badge appears.
+    if (isVault) return
+
     axios.get(`${API_URL}/active-scene`)
       .then(({ data }) => {
         setActiveScene(data)
@@ -59,14 +66,15 @@ export default function Upload({ status, onStatusChange, onResult, onBack }) {
         // Quota badge just won't show if this fails — backend still enforces it.
       })
 
-  }, [])
+  }, [isVault])
 
   // Availability is owned by App (one poll for the whole app, so a closed day
   // can lock every screen). Absent status = assume open; the backend still
-  // enforces every gate on /generate and explains itself there.
-  const serviceAvailable = status ? status.generation_available : true
+  // enforces every gate on /generate and explains itself there. Vault mode is
+  // always open.
+  const serviceAvailable = isVault ? true : (status ? status.generation_available : true)
   const serviceMessage = status?.message
-  const outOfQuota = quota && quota.remaining <= 0
+  const outOfQuota = !isVault && quota && quota.remaining <= 0
 
   const handleFile = (file) => {
     if (!file) return
@@ -122,9 +130,12 @@ export default function Upload({ status, onStatusChange, onResult, onBack }) {
     if (customPrompt.trim()) {
       formData.append('custom_prompt', customPrompt.trim())
     }
+    if (isVault) formData.append('key', vault.key)
+
+    const endpoint = isVault ? `${API_URL}/vault/generate` : `${API_URL}/generate`
 
     try {
-      const { data } = await axios.post(`${API_URL}/generate`, formData, {
+      const { data } = await axios.post(endpoint, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: 120_000,
       })
@@ -166,9 +177,15 @@ export default function Upload({ status, onStatusChange, onResult, onBack }) {
         >
           ← Back
         </button>
-        <p className="text-divine-500 text-xs tracking-widest uppercase font-semibold mb-1">The SuperNaturals</p>
+        <p className="text-divine-500 text-xs tracking-widest uppercase font-semibold mb-1">
+          {isVault ? '🔓 Vault — unlocked' : 'The SuperNaturals'}
+        </p>
         <h2 className="font-display text-3xl font-bold text-white">Create Your Portrait</h2>
-        <p className="text-slate-400 text-sm mt-1">Upload your photo and receive your supernatural image.</p>
+        <p className="text-slate-400 text-sm mt-1">
+          {isVault
+            ? 'Any scene, any day — caps and limits are off here.'
+            : 'Upload your photo and receive your supernatural image.'}
+        </p>
 
         {/* Service-wide daily limit banner — shown when Gemini's quota is spent */}
         {!serviceAvailable && (
