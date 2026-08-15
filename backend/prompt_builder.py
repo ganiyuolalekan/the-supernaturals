@@ -95,8 +95,15 @@ _FEMALE_WARDROBE_DIRECTIVE = (
     "tight, clinging, body-hugging, sheer, short, low-cut, off-shoulder or otherwise revealing. "
     "Modest high neckline, shoulders and chest covered, sleeves worn long to the wrist (only "
     "where the scene must show bare forearms, such as breaking chains, may the sleeves end near "
-    "the elbow). The impression is graceful, pure and modest — she is presented as decent, not "
-    "as glamorous or sexy."
+    "the elbow). FABRIC OPACITY — hard requirement, no exceptions: every part of the gown is "
+    "made of fully opaque, solid, thick-woven cloth. It is NEVER sheer, see-through, "
+    "transparent, translucent, gauzy, mesh, netted or gossamer, and no light passes through it. "
+    "Her body, skin, silhouette, undergarments or any part beneath the fabric must NOT be "
+    "visible through it at any point — not the torso, chest, midriff, hips, legs, arms or back. "
+    "The cloth is properly lined and dense so that even where the scene's backlight, god rays, "
+    "fire or divine glow shine from behind or through the frame, the garment stays completely "
+    "opaque and reveals nothing of the form underneath. The impression is graceful, pure and "
+    "modest — she is presented as decent, not as glamorous or sexy."
 )
 
 # Light, natural makeup for a female subject — carefully scoped so it never
