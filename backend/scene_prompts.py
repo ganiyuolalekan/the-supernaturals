@@ -76,22 +76,27 @@ blurry background, towering dark waves. Dark storm grey and deep navy with explo
 the center breach. Epic biblical scale.""",
 
     # ─────────────────────── AUTHORITY & WARFARE ───────────────────────
-    "defeating-giants": """A photorealistic fantasy realism full-body extreme low-angle shot of a supernatural warrior
-standing triumphant beside a defeated giant. He stands on flat open ground, his feet planted
-wide and firm on the bare cracked earth—never standing on, stepping on or touching the giant's
-body—looking directly into the camera with quiet steel-eyed confidence—calm after the battle, not
-boasting. He wears white and gold ceremonial armor of a
-heavenly warrior—a fitted white cuirass and shoulder pauldrons with ornate polished-gold edging
-worn over flowing white robes, a long white fabric tabard embroidered with gold falling down the
-front over the legs, a gold waist belt; the cloth drapes in natural folds and the silhouette is
-regal, majestic and angelic;
+    "defeating-giants": """A photorealistic fantasy realism full-body eye-level wide shot of a supernatural warrior
+standing triumphant beside a defeated giant. The warrior is a man of ordinary human height with a
+lean, slender build—deliberately small in the frame so the giant towers over him in scale. He
+stands on flat open ground, his feet planted wide and firm on the bare cracked earth—never standing
+on, stepping on or touching the giant's body—looking directly into the camera with quiet steel-eyed
+confidence—calm after the battle, not boasting. He wears a full suit of white and gold ceremonial armor of a heavenly warrior—a fitted
+white cuirass, shoulder pauldrons and vambraces with ornate polished-gold edging, and matching
+white-and-gold armored greaves covering the legs, with a single narrow gold-edged white tabard
+panel hanging from a gold waist belt down the front only; he is unmistakably a man clad in fitted
+armor—regal, majestic and angelic, never in a gown, dress or skirt;
 large white wings spread fully behind him, tips nearly grazing the ground on each side. On the
-ground in front of him and off to one side, the massive form of a fallen giant lies defeated on
-the bare cracked earth—a huge, powerfully-built man of enormous size clad in heavy dark battle armor, a
-rugged iron-grey breastplate and armored plates battered and dented from the fight, his large
-armored body clearly and fully visible in the light, head fallen back and limbs sprawled,
-unmistakably beaten; not a shadow or silhouette but a solid physical body. The warrior stands
-clear of the giant, not on top of it. A single smooth stone, still glowing with
+ground in front of him and off to one side lies the fallen giant—an enormous giant at least TWICE
+the size of the warrior in every dimension. To make the scale unmistakable: the giant's head alone
+is as large as the warrior's whole torso, and each of the giant's hands is as big as the warrior's
+entire chest. Even sprawled and defeated on the bare cracked earth its sprawled body length runs to
+well over twice the standing warrior's full height, so the warrior looks small and is clearly
+dwarfed by the sheer bulk of the fallen giant. It is a huge, powerfully-built man of gigantic
+proportions clad in heavy dark battle armor—a rugged iron-grey breastplate and armored plates
+battered and dented from the fight—its massive armored body clearly and fully visible in the
+light, head fallen back and limbs sprawled, unmistakably beaten; not a shadow or silhouette but a
+solid physical body. The warrior stands clear of the giant, not on top of it. A single smooth stone, still glowing with
 faint warm divine energy, rests on the ground beside the giant's body, and the earth is cracked
 and disturbed where he fell.
 The lighting is bright, soft and luminous—hazy heavenly daylight with strong volumetric god rays
