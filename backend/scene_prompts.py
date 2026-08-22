@@ -79,19 +79,25 @@ the center breach. Epic biblical scale.""",
     "defeating-giants": """A photorealistic fantasy realism full-body extreme low-angle shot of a supernatural warrior
 standing triumphant over a defeated giant. He stands on a dark rocky outcrop, feet planted
 wide in a steady, grounded stance, looking directly into the camera with quiet steel-eyed
-confidence—calm after the battle, not boasting. He wears white and gold battle armor of clean
-modern design—sculpted matte-white plate across chest, shoulders and shins with polished gold
-edging, a fitted dark underlayer at the arms, intricate visible weaves in the layered white
-fabric; the silhouette is contemporary and athletic rather than ancient or robed;
+confidence—calm after the battle, not boasting. He wears white and gold ceremonial armor of a
+heavenly warrior—a fitted white cuirass and shoulder pauldrons with ornate polished-gold edging
+worn over flowing white robes, a long white fabric tabard embroidered with gold falling down the
+front over the legs, a gold waist belt; the cloth drapes in natural folds and the silhouette is
+regal, majestic and angelic;
 large white wings spread fully behind him, tips nearly grazing the ground on each side. Beneath
-and below him, the massive form of a fallen giant lies in deep shadow—an enormous dark figure,
-the scale suggesting forty or fifty feet—the ground cracked and disturbed where it fell.
-A single smooth stone, still warm with faint divine energy, rests on the ground nearby.
-The lighting is backlit and dramatic—strong volumetric god rays break over his shoulders from
-behind the hill at the horizon, casting long dramatic shadows forward across the fallen giant,
-his silhouette blazing with rim lighting in gold. Realistic subsurface scattering on skin.
-In the blurry background, a vast open valley battlefield extends to distant dark mountains.
-Dark dramatic color grading with warm god-ray gold on the subject only. Epic biblical scale.""",
+and directly in front of him, the massive form of a fallen giant lies defeated across the dark
+rock—a huge, powerfully-built bare-chested man of enormous size, his muscular body and bare skin
+clearly and fully visible in the light, head fallen back and limbs sprawled, unmistakably beaten;
+not a shadow or silhouette but a solid physical body. A single smooth stone, still glowing with
+faint warm divine energy, rests on the rock beside the giant's body, and the ground is cracked
+and disturbed where he fell.
+The lighting is bright, soft and luminous—hazy heavenly daylight with strong volumetric god rays
+pouring down from behind the warrior, rim-lighting his silhouette and wings in warm gold while
+still lighting the fallen giant clearly and fully. Realistic subsurface scattering on skin.
+In the softly blurred background stretches a vast battlefield host—a great crowd and army of many
+figures behind him, with rows of pale tents and tall raised banners and flags on poles, receding
+into bright atmospheric haze toward distant faint mountains. Luminous, warm golden light, epic
+biblical scale.""",
 
     "silencing-the-lion": """A photorealistic fantasy realism full-body eye-level shot of a supernatural warrior with a
 lion fully submitted before him. He stands tall on dark rocky ground, feet planted at shoulder

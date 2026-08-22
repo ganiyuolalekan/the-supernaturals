@@ -75,6 +75,38 @@ _UNTUCKED_SHIRT_DIRECTIVE = (
     "trousers are loose and free-cut, never tight, slim or skinny."
 )
 
+# ── Ceremonial-armor scenes ──────────────────────────────────────────────────
+# defeating-giants regressed after the Aug wardrobe directive: its "well-fitted,
+# present-day, modern tailoring, contemporary rather than robes" language (plus the
+# scene's old "fitted dark underlayer / contemporary athletic not robed" wording)
+# turned the majestic white-and-gold ceremonial armor into a sleek modern plate suit
+# worn over a skin-tight black bodysuit — a superhero/CG look the client rejected.
+# This directive restores the earlier, preferred look: flowing white-and-gold
+# ceremonial armor with a fabric tabard drape, regal and photoreal. The generic
+# _WARDROBE_DIRECTIVE already permits "ceremonial dress", so this refines rather than
+# fights it. Scoped to defeating-giants for now (this week); add other ceremonial
+# scene ids here when rolling out.
+_CEREMONIAL_ARMOR_SCENES = frozenset({
+    "defeating-giants",
+})
+
+_CEREMONIAL_ARMOR_DIRECTIVE = (
+    "WARDROBE — ceremonial armor (hard requirement, and this is exactly the 'ceremonial dress' "
+    "the wardrobe note above allows, so it OVERRIDES any 'contemporary tailoring', 'present-day', "
+    "'modern', 'fitted' or 'not robes' wording): dress him as a majestic heavenly warrior in "
+    "flowing WHITE-AND-GOLD ceremonial armor. A fitted white breastplate/cuirass and shoulder "
+    "pauldrons with ornate polished-gold filigree edging are worn OVER white robes; a long white "
+    "fabric tabard/surcoat embroidered with gold hangs down the front, draping over the legs to "
+    "the shins in soft natural cloth folds, with a gold waist belt. The look is regal, dignified "
+    "and angelic — like white-and-gold ceremonial plate over robes, not a modern combat suit. "
+    "STRICTLY AVOID: any skin-tight or form-fitting black/dark full-body underlayer, dark leggings "
+    "or bare dark legs; a sleek modern 'superhero' or sci-fi armored bodysuit; glossy plastic-look "
+    "plate; and an exaggerated bodybuilder muscle silhouette. His legs are covered by the flowing "
+    "white robe/tabard and light greaves, never by a dark bodysuit. Keep it strictly photographic "
+    "and photorealistic — real woven cloth, real metal, a real person photographed in natural "
+    "light, never an illustrated, painted, cartoon or CG-render look."
+)
+
 # ── Female subjects ────────────────────────────────────────────────────────
 # When the subject is a woman, trousers read poorly, so the scene's shirt-and-
 # trousers wardrobe is re-cut as a modest, free-flowing full-length gown in the
@@ -224,6 +256,10 @@ def build_prompt(
         # no longer applies — the gown directive supersedes it.
         parts.append(_FEMALE_WARDROBE_DIRECTIVE)
         parts.append(_FEMALE_BEAUTY_DIRECTIVE)
+    elif scene_id in _CEREMONIAL_ARMOR_SCENES:
+        # Restore the preferred flowing white-and-gold ceremonial armor, overriding
+        # the generic directive's push toward a modern fitted suit + dark bodysuit.
+        parts.append(_CEREMONIAL_ARMOR_DIRECTIVE)
     elif scene_id in _UNTUCKED_SHIRT_SCENES:
         parts.append(_UNTUCKED_SHIRT_DIRECTIVE)
 
