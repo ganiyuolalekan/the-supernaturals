@@ -1,0 +1,92 @@
+/* /our-sponsors. Builds on the shared .igc tokens and components from
+   ../about-conference/igc.css; everything here is prefixed .sp- and scoped under .sp. */
+
+.sp .sp-section { position: relative; padding: 56px 0; overflow: hidden; }
+@media (min-width: 768px) { .sp .sp-section { padding: 80px 0; } }
+.sp .sp-section > .igc-wrap { position: relative; z-index: 1; }
+.sp .sp-section[data-in] .igc-rise { opacity: 1; transform: none; }
+
+.sp-section--white { background: var(--white); --card: var(--cream); }
+.sp-section--cream { background: var(--cream); --card: var(--white); }
+
+/* ── Header brand ─────────────────────────────────────────────────────────── */
+.sp-brand { display: flex; align-items: center; gap: 4px; min-height: 44px; text-decoration: none; font: 700 18px var(--font-head); color: var(--navy); }
+.sp-brand__wings { width: 56px; height: auto; flex: none; }
+
+/* ── Intro ────────────────────────────────────────────────────────────────── */
+.sp-hero { background: var(--cream); padding-top: 64px; }
+@media (min-width: 768px) { .sp .sp-hero { padding-top: 88px; padding-bottom: 72px; } }
+.sp-hero .igc-h2 { font-size: clamp(2.5rem, 0.9rem + 5.6vw, 4.5rem); }
+.sp-hero .igc-head { margin-bottom: 36px; }
+
+.sp-jump { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px 16px; }
+.sp-jump__link {
+  display: grid; justify-items: center; gap: 10px; width: 116px; text-align: center; text-decoration: none;
+  font: 600 13px/1.3 var(--font-head); color: var(--navy);
+}
+.sp-jump .sp-logo { width: 104px; height: 104px; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; }
+.sp-jump__link:hover .sp-logo { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(26, 20, 16, 0.16); border-color: var(--gold); }
+
+/* ── Logo tile ────────────────────────────────────────────────────────────── */
+.sp-logo {
+  display: grid; place-items: center; flex: none; width: 112px; height: 112px; padding: 10px; overflow: hidden;
+  background: var(--logo-bg, #fff); border: 1px solid rgba(26, 20, 16, 0.12); border-radius: 20px; box-shadow: var(--shadow);
+}
+.sp-logo img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
+.sp-logo--lg { width: 120px; height: 120px; }
+@media (min-width: 768px) { .sp-logo--lg { width: 152px; height: 152px; } }
+
+/* ── One sponsor ──────────────────────────────────────────────────────────── */
+.sp-banner {
+  margin: 0; aspect-ratio: 16 / 9; border-radius: 24px; overflow: hidden; background: #e9e9ec; box-shadow: var(--shadow);
+}
+/* On wide screens the product shot is cropped to a banner; the empty space above and below is trimmed. */
+@media (min-width: 768px) { .sp-banner { aspect-ratio: 2.2 / 1; } }
+.sp-banner img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; }
+
+.sp-id { display: flex; flex-wrap: wrap; align-items: center; gap: 20px 28px; margin-top: 28px; }
+.sp-id__text { flex: 1 1 260px; min-width: 0; }
+.sp-num { font: 600 13px var(--font-head); letter-spacing: 0.14em; color: var(--ink-soft); margin-bottom: 4px; }
+.sp-reg {
+  display: inline-block; margin-top: 8px; padding: 2px 12px; border-radius: 999px; font: 500 14px var(--font-body);
+  background: var(--gold-soft); border: 1px solid rgba(201, 154, 31, 0.55);
+}
+.sp-tagline { margin-top: 10px; max-width: 48ch; font: 500 clamp(1.0625rem, 1rem + 0.5vw, 1.3125rem) / 1.4 var(--font-head); }
+.sp-quote { margin-top: 6px; font-style: italic; color: var(--ink-soft); }
+
+.sp-body { display: grid; gap: 32px; margin-top: 32px; }
+@media (min-width: 1024px) { .sp-body { grid-template-columns: minmax(0, 1fr) 360px; gap: 48px; align-items: start; } }
+.sp-main { display: grid; gap: 28px; align-content: start; min-width: 0; }
+.sp-about { max-width: 65ch; font-size: 1.125rem; }
+.sp-block p { max-width: 65ch; }
+
+.sp-h3 { font: 600 13px var(--font-head); letter-spacing: 0.12em; text-transform: uppercase; color: var(--navy); margin-bottom: 10px; }
+
+.sp-pairs { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.sp-pair { padding: 20px; border-radius: 16px; background: var(--card); border-left: 4px solid var(--gold); box-shadow: var(--shadow); }
+.sp-pair .sp-h3 { margin-bottom: 6px; }
+
+.sp-cards { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.sp-card { display: grid; gap: 6px; align-content: start; padding: 18px 20px; border-radius: 16px; background: var(--card); box-shadow: var(--shadow); }
+.sp-card h4 { font: 600 1.0625rem/1.3 var(--font-head); color: var(--navy); margin: 0; }
+.sp-card p { font-size: 15px; line-height: 1.55; color: var(--ink-soft); }
+.sp-card__n {
+  display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+  background: var(--gold); color: var(--ink); font: 700 14px var(--font-head);
+}
+
+/* ── Find them ────────────────────────────────────────────────────────────── */
+.sp-find {
+  display: grid; gap: 12px; padding: 22px; border-radius: 20px; background: var(--navy); color: #fff;
+}
+@media (min-width: 1024px) { .sp-find { position: sticky; top: calc(var(--hdr) + 16px); } }
+.sp-find__title { font: 600 13px var(--font-head); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); }
+.sp-line { display: flex; gap: 10px; align-items: flex-start; overflow-wrap: anywhere; }
+.sp-line svg { flex: none; margin-top: 4px; color: var(--gold); }
+.sp-note { font-size: 14px; color: rgba(255, 255, 255, 0.82); }
+.sp-actions { display: grid; gap: 10px; margin-top: 6px; }
+.sp-email { font-size: 13px; font-weight: 500; padding-inline: 14px; overflow-wrap: anywhere; }
+.sp-find .igc-btn--primary { border-color: rgba(255, 255, 255, 0.85); }
+.sp-find .igc-btn--outline { border-color: #fff; color: #fff; }
+.sp-find .igc-btn--outline:hover { background: #fff; color: var(--navy); }
+.sp-find :focus-visible { outline-color: var(--gold); box-shadow: 0 0 0 5px var(--navy-deep); }

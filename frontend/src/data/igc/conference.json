@@ -1,0 +1,151 @@
+{
+  "meta": {
+    "title": "IGC 2026 · The Supernaturals",
+    "description": "IGC 2026, The Supernaturals (Romans 8:11). The Issachar Generation Conference, 16–18 October 2026, Praise Assembly Parish, Karu Site, Abuja.",
+    "lang": "en-NG"
+  },
+
+  "event": {
+    "name": "IGC 2026",
+    "fullName": "The Issachar Generation Conference",
+    "edition": "10th Anniversary",
+    "theme": "The Supernaturals",
+    "scripture": "Romans 8:11",
+    "dateShort": "Fri 16 – Sun 18 October 2026",
+    "dateLong": "Friday 16 – Sunday 18 October 2026",
+    "venue": {
+      "name": "Praise Assembly Parish",
+      "place": "Karu Site, Abuja",
+      "landmark": "Opposite Corner Shop"
+    },
+    "host": "The Issachar Generation (TIG), the youth ministry of RCCG Praise Assembly",
+    "youthPastor": "Deacon Femi Bakare",
+    "transport": "Free transportation is available.",
+    "phone": "0810 860 8077",
+    "registerUrl": null,
+    "logos": {
+      "tig": { "label": "TIG", "alt": "The Issachar Generation (TIG) logo", "image": null },
+      "rccg": { "label": "RCCG", "alt": "RCCG logo", "image": null }
+    },
+    "social": {
+      "handle": "@rccgpa_tig",
+      "tiktokUrl": "https://www.tiktok.com/@rccgpa_tig",
+      "instagramUrl": "https://www.instagram.com/rccgpa_tig",
+      "youtube": "RCCG PA TIG",
+      "youtubeUrl": null,
+      "facebook": "RCCG PA TIG",
+      "facebookUrl": null,
+      "whatsappUrl": null
+    }
+  },
+
+  "hero": {
+    "collage": [
+      { "label": "Hero photo 1", "alt": "Young people worshipping at a past IGC", "image": null },
+      { "label": "Hero photo 2", "alt": "Youths praying together at a past IGC", "image": null },
+      { "label": "Hero photo 3", "alt": "A minister preaching at a past IGC", "image": null },
+      { "label": "Hero photo 4", "alt": "The IGC crowd celebrating", "image": null }
+    ]
+  },
+
+  "about": {
+    "heading": "About the Conference",
+    "paragraphs": [
+      "The Issachar Generation Conference (IGC) is the annual youth conference of the Issachar Generation, the youth ministry of RCCG Praise Assembly. It is a gathering of young believers consecrated to know God, understand the times, and experience the power of the Holy Spirit.",
+      "The theme for IGC 2026 is **“THE SUPERNATURALS”**: a call for youths to live beyond the ordinary and encounter the God of the supernatural."
+    ],
+    "photos": [
+      { "label": "Conference photo 1", "alt": "Worship at IGC", "image": null },
+      { "label": "Conference photo 2", "alt": "Young people at IGC", "image": null },
+      { "label": "Conference photo 3", "alt": "Ministration at IGC", "image": null },
+      { "label": "Conference photo 4", "alt": "Fellowship at IGC", "image": null }
+    ]
+  },
+
+  "story": {
+    "heading": "Who We Are",
+    "paragraphs": [
+      "The Issachar Generation is the youth expression of RCCG Praise Assembly: a company of young believers raised to know God intimately, understand the times, and walk in the power of His Spirit.",
+      "For most of our journey we were known as **YAYA**. Last year, under our Youth Pastor, **Deacon Femi Bakare**, the ministry transitioned into **The Issachar Generation**, a name inspired by the sons of Issachar."
+    ],
+    "transition": { "from": "YAYA", "to": "The Issachar Generation" },
+    "scripture": {
+      "text": "…which had understanding of the times, to know what Israel ought to do.",
+      "reference": "1 Chronicles 12:32"
+    },
+    "mission": {
+      "label": "Our mission",
+      "text": "Raising a generation of young believers who have the understanding of times and seasons: knowing what to do per time, knowing how to do it, when to do it, and doing it."
+    }
+  },
+
+  "journey": {
+    "heading": "Conference Order",
+    "intro": "Five seasons, one journey. Every step led us here.",
+    "photo": { "label": "Youth crowd photo", "alt": "Young people gathered at IGC", "image": null },
+    "steps": [
+      {
+        "title": "The Mandate",
+        "text": "The journey began with a charge: discovering God's assignment for our generation. This phase was about receiving the Great Commission personally: understanding that our lives are not our own, and that we have been entrusted with the mandate to represent Christ on the earth."
+      },
+      {
+        "title": "Emergence",
+        "text": "Once the mandate is received, a people must rise. Emergence was the season of stepping out: young believers coming of age, leaving the shadows, taking their place in the family of God, and declaring themselves available to be used by Him."
+      },
+      {
+        "title": "Elevate",
+        "text": "Having emerged, the call is upward. Elevate was about rising in stewardship: deeper consecration, growth in character, competence, and spiritual capacity, refusing to remain at the level of the ordinary but ascending to the heights God has prepared for us."
+      },
+      {
+        "title": "Kairos",
+        "text": "Beyond elevation, we learnt that God has a moment for everything. Kairos, the appointed time, taught us to recognize heaven's seasons, to discern what the Spirit is saying in this hour, and to act with understanding, like the sons of Issachar."
+      },
+      {
+        "title": "The Supernaturals",
+        "text": "Now we step beyond understanding into experience. The Supernaturals is the season where the Spirit's power becomes tangibly real in our everyday lives: gifts, healings, miracles, prophetic living. A company of young people who don't just believe in the supernatural, but visibly live it.",
+        "current": true
+      }
+    ]
+  },
+
+  "previous": {
+    "heading": "Previous Ministers",
+    "intro": "Through the years, the Issachar Generation Conference has hosted a fellowship of fathers, teachers, psalmists and revival voices: servants of God who poured into our youths and left deposits that remain with us till today. We honour them.",
+    "groups": [
+      { "number": "01", "name": "Pastors", "people": ["John Samuel Tayo", "(Mrs) Temitope Onuegbu", "Tai Osuntubo"] },
+      { "number": "02", "name": "Doctors", "people": ["Dr Levin Damisah", "Dr Dayo Benjamins"] },
+      { "number": "03", "name": "Ministers", "people": ["Esther Orj", "Leke Gospe", "Steve Hills", "Tee Worship"] },
+      { "number": "04", "name": "Mrs & more", "people": ["Mrs Olujimi", "Mrs Chizoba Mojekwu", "and many more"] }
+    ],
+    "closing": "Their labour over this generation is not in vain. We stand today on the foundations they laid.",
+    "photos": [
+      { "label": "Past IGC photo 1", "alt": "A minister ministering at a past IGC", "image": null },
+      { "label": "Past IGC photo 2", "alt": "Worship at a past IGC", "image": null },
+      { "label": "Past IGC photo 3", "alt": "Youths praying at a past IGC", "image": null },
+      { "label": "Past IGC photo 4", "alt": "The crowd at a past IGC", "image": null }
+    ]
+  },
+
+  "ministersSection": {
+    "heading": "Guest Ministers 2026",
+    "intro": "Eight voices. One Spirit. Tap a minister to read more."
+  },
+
+  "sponsorsSection": {
+    "heading": "Made possible by our partners.",
+    "intro": "Tap a partner to see who they are and how to reach them.",
+    "cta": "Want to partner with us? Reach out on any of our platforms · @rccgpa_tig."
+  },
+
+  "visit": {
+    "heading": "Plan Your Visit",
+    "days": [
+      { "label": "Day One", "date": "Fri 16 Oct" },
+      { "label": "Day Two", "date": "Sat 17 Oct" },
+      { "label": "Day Three", "date": "Sun 18 Oct" }
+    ],
+    "venuePhoto": { "label": "Venue photo or map", "alt": "Praise Assembly Parish, Karu Site, Abuja", "image": null },
+    "qr": { "label": "Registration QR code", "image": "/registration_barcode.png" },
+    "closingLine": "IGC 2026 · The Supernaturals · Romans 8:11"
+  }
+}

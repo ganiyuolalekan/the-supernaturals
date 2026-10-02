@@ -1,0 +1,277 @@
+[
+  {
+    "slug": "crystal-klair",
+    "name": "Crystal Klair Glamour Touch Limited",
+    "regNo": "RC 1220417",
+    "tagline": "Your one-stop shop for building finishing.",
+    "quote": "We bring your dream building to reality.",
+    "logo": null,
+    "heroImage": null,
+    "images": [
+      { "caption": "Tiles & granite", "image": null },
+      { "caption": "Sanitary ware & bathtubs", "image": null },
+      { "caption": "Doors & 3D finishes", "image": null }
+    ],
+    "slides": [
+      { "type": "cover" },
+      {
+        "type": "content",
+        "title": "Who We Are",
+        "paragraphs": [
+          "An exclusive one-stop building materials company that provides high-quality products and reliable service to customers. A rich history of improving the wellbeing of those it serves through innovative building solutions, cost-effective solutions, efficiency advancements, and efforts to promote a sustainable future."
+        ]
+      },
+      {
+        "type": "content",
+        "title": "Vision & Mission",
+        "pairs": [
+          { "label": "Vision", "text": "To be a leading brand providing durable and quality yet affordable building and construction support services that promote a sustainable future within Nigeria and West Africa." },
+          { "label": "Mission", "text": "To provide premium services that enhance corporate integrity and guaranteed customer satisfaction and trust in the industry, by providing quality yet affordable building solutions and cost-effective solutions to customers." }
+        ]
+      },
+      {
+        "type": "content",
+        "title": "Products & Services",
+        "chips": ["Tiles", "Granite", "Doors", "Sanitary ware", "Jacuzzi", "Bathtub", "HD Pane", "Glass Cubicle", "Stamped Concrete Floor", "Fancy Glass Block", "Roller Shutter", "Security Solutions", "High-quality Paints", "3D Floor", "3D Wallpaper"]
+      },
+      { "type": "images", "title": "Gallery" },
+      {
+        "type": "content",
+        "title": "Our Partners",
+        "cards": [
+          { "title": "Spider Merchandise Company", "text": "Israeli security doors, CCTV and other security solutions." },
+          { "title": "APLUS SIGNATURE Nigeria Limited", "text": "Business planning, strategy and execution, construction services." },
+          { "title": "Helvic Nigeria Limited", "text": "Waterproofing systems, insulation panels, acoustic wall panels, sport flooring, decorative walls." }
+        ]
+      },
+      {
+        "type": "contact",
+        "title": "Where to Find Us",
+        "addresses": ["B07, VGI Center, Wuye, Abuja", "Beside Supernovae Mega Mart, off Linda Chalker Street, Guzape, Abuja"],
+        "note": "Serves all 36 states and the wider West African region.",
+        "phones": ["+234 808 661 2080", "+234 705 458 8187"],
+        "emails": ["crystalklair2018@gmail.com", "talk2godsfriend@gmail.com"],
+        "social": ["Crystalklairltd"]
+      }
+    ]
+  },
+
+  {
+    "slug": "katonium",
+    "name": "Katonium Concepts Limited",
+    "tagline": "Smart technology, security and connectivity for a safer, smarter and more connected world.",
+    "logo": null,
+    "heroImage": null,
+    "images": [
+      { "caption": "CCTV & security", "image": null },
+      { "caption": "Starlink & networking", "image": null },
+      { "caption": "Solar & power", "image": null }
+    ],
+    "slides": [
+      { "type": "cover" },
+      {
+        "type": "content",
+        "title": "Who We Are",
+        "paragraphs": [
+          "A technology and security solutions company providing reliable ICT, physical security, networking, power and connectivity solutions for homes, businesses, offices and organizations. Helps clients design, supply, install and maintain technology systems that improve security, connectivity, productivity and operational efficiency."
+        ]
+      },
+      {
+        "type": "content",
+        "title": "Our Mission",
+        "paragraphs": [
+          "To provide accessible, reliable and innovative technology and security solutions that solve real-world problems for individuals, businesses and organizations."
+        ]
+      },
+      {
+        "type": "content",
+        "title": "Services",
+        "chips": ["CCTV Surveillance Systems", "ICT Equipment", "Networking Solutions", "Starlink Internet Solutions", "Power & Solar Solutions", "Physical Security Solutions", "Technical Support & Maintenance"]
+      },
+      { "type": "images", "title": "Gallery" },
+      {
+        "type": "content",
+        "title": "Our Approach",
+        "paragraphs": [
+          "Not just selling equipment: understanding client needs and providing complete solutions, from assessment and product selection to installation, configuration and after-sales support. Our goal: to be a trusted technology and security partner across Nigeria."
+        ],
+        "chipsTitle": "Core values",
+        "chips": ["Reliability", "Professionalism", "Innovation", "Quality", "Customer Satisfaction", "Integrity"]
+      },
+      {
+        "type": "contact",
+        "title": "Where to Find Us",
+        "addresses": ["Abuja, Nigeria"],
+        "note": "Projects across Nigeria, depending on scope.",
+        "phones": [],
+        "emails": [],
+        "social": [],
+        "pending": "Phone and email to be added."
+      }
+    ]
+  },
+
+  {
+    "slug": "teequad",
+    "name": "TEEQUAD Global Services Ltd.",
+    "tagline": "Integrated travel, logistics, corporate support and facility management.",
+    "logo": null,
+    "heroImage": null,
+    "images": [
+      { "caption": "Travel & tourism", "image": null },
+      { "caption": "Logistics & haulage", "image": null },
+      { "caption": "Facility management", "image": null }
+    ],
+    "slides": [
+      { "type": "cover" },
+      {
+        "type": "content",
+        "title": "Who We Are",
+        "paragraphs": [
+          "An operational partner that helps organizations manage complex support functions so they can focus on their core business."
+        ]
+      },
+      {
+        "type": "content",
+        "title": "Mission & Vision",
+        "pairs": [
+          { "label": "Mission", "text": "Providing adaptable, high-impact facility and logistical solutions that ensure client satisfaction year after year." },
+          { "label": "Vision", "text": "To become a global benchmark for integrated corporate support services, guided by reliability, professionalism, rigor and client-centricity." }
+        ]
+      },
+      {
+        "type": "content",
+        "title": "Four Pillars",
+        "cards": [
+          { "title": "Travel & Tourism", "text": "Flight and hotel reservations, ticketing, visa processing, travel management, VIP protocol." },
+          { "title": "Logistics & Haulage", "text": "Fleet management, vehicle tracking, haulage, supply-chain solutions." },
+          { "title": "Corporate Services", "text": "Business registration, documentation, procurement, executive outsourcing/support." },
+          { "title": "Facility Management", "text": "Technical maintenance, janitorial/cleaning, professional security." }
+        ]
+      },
+      { "type": "images", "title": "Gallery" },
+      {
+        "type": "content",
+        "title": "Who They Serve",
+        "chips": ["Government agencies", "Oil & gas companies", "Manufacturers", "Corporate organizations", "Educational institutions", "Hospitality businesses", "NGOs and development organizations", "SMEs and startups"]
+      },
+      {
+        "type": "contact",
+        "title": "Where to Find Us",
+        "addresses": ["Shop B16-11, Karu Community Plaza, Karu Market, Abuja, Nigeria"],
+        "phones": ["08035267956"],
+        "emails": ["teequadglobal@gmail.com"],
+        "social": []
+      }
+    ]
+  },
+
+  {
+    "slug": "medaan",
+    "name": "Medaan Engineering Services Limited",
+    "tagline": "Engineering solutions that keep industry moving.",
+    "logo": null,
+    "heroImage": null,
+    "images": [
+      { "caption": "Marine & hydraulics", "image": null },
+      { "caption": "Solar & electrical", "image": null },
+      { "caption": "HVAC & automation", "image": null }
+    ],
+    "slides": [
+      { "type": "cover" },
+      {
+        "type": "content",
+        "title": "Who We Are",
+        "paragraphs": [
+          "An integrated engineering company, incorporated in 2016, combining engineering expertise, quality equipment, trusted OEM partnerships and responsive field execution under one roof. One partner, from challenge to completion.",
+          "Offices in Abuja, Lagos and Port Harcourt."
+        ]
+      },
+      {
+        "type": "content",
+        "title": "What We Do",
+        "chips": ["Marine and offshore engineering", "Hydraulics", "Welding and fabrication", "Solar PV and battery storage", "Electrical installations", "HVAC and refrigeration", "Automation and PLC", "ICT and telecoms", "Inspection and NDT"]
+      },
+      { "type": "images", "title": "Gallery" },
+      {
+        "type": "content",
+        "title": "Industries We Serve",
+        "chips": ["Oil & gas", "Marine & offshore", "Power & energy", "Mining & cement", "Manufacturing", "Telecoms", "Government"]
+      },
+      {
+        "type": "contact",
+        "title": "Where to Find Us",
+        "addresses": ["G.O.P Mall, Plot 6, Nyanya–Jikwoyi Road, Karu Layout, Abuja"],
+        "phones": ["+234 908 744 0266", "+234 806 702 6831"],
+        "emails": ["sales@medaanengineeringservices.com"],
+        "social": []
+      }
+    ]
+  },
+
+  {
+    "slug": "crimson-and-connect",
+    "name": "Crimson and Connect Empowerment Initiative",
+    "tagline": "Every child empowered to fulfil their potential.",
+    "logo": null,
+    "heroImage": null,
+    "images": [
+      { "caption": "Education & safe spaces", "image": null },
+      { "caption": "Vocational skills", "image": null },
+      { "caption": "Youth leadership", "image": null }
+    ],
+    "slides": [
+      { "type": "cover" },
+      {
+        "type": "content",
+        "title": "Who We Are",
+        "paragraphs": [
+          "A youth-led organization dedicated to ensuring that every child, regardless of origin, with or without disability, is empowered to fulfil their potential. Built on more than five years of hands-on interventions for in-school and out-of-school children.",
+          "No child should be left behind because of poverty, gender, disability or circumstance."
+        ]
+      },
+      {
+        "type": "content",
+        "title": "Vision & Mission",
+        "pairs": [
+          { "label": "Vision", "text": "An Africa where every child and adolescent has access to quality education, the skills to earn a living, and the confidence to lead." },
+          { "label": "Mission", "text": "To reach marginalized children, especially out-of-school children and adolescent girls, with learning, life skills and livelihood opportunities that open real pathways to a better future." }
+        ]
+      },
+      {
+        "type": "content",
+        "title": "What We Do",
+        "cards": [
+          { "title": "Education and Safe Spaces", "text": "Safe learning spaces through the Crimson and Connect Education Project for out-of-school children and adolescent girls (10–18, with or without disability): basic literacy, numeracy, and life skills including SRHR, mental health and bodily autonomy." },
+          { "title": "Vocational Skills Training", "text": "The Vocational Skill Centre teaches fashion, baking and digital skills, followed by internship placements for top trainees." },
+          { "title": "Back to School Support", "text": "School essentials and retention support so vulnerable children enrol and stay in school." },
+          { "title": "Community Advocacy and Health Education", "text": "Engaging communities, parents and leaders; training peer educators for adolescent health and inclusive learning." },
+          { "title": "Youth Leadership", "text": "Peer-to-peer workshops and student platforms such as the Fail Fun Conference in Abuja." }
+        ]
+      },
+      { "type": "images", "title": "Gallery" },
+      {
+        "type": "content",
+        "title": "Our Approach",
+        "paragraphs": [
+          "Individualized learning plans that meet each child where they are, working with parents, community and religious leaders, mentors and partners so change is owned by the community and lasts."
+        ],
+        "pairs": [
+          { "label": "Where we work", "text": "Federal Capital Territory (Abuja), including communities in Kwali Area Council, with plans to expand to other states." },
+          { "label": "Partner with us", "text": "We welcome donors, corporate organizations, schools and development agencies who share the belief that every child deserves a chance." }
+        ]
+      },
+      {
+        "type": "contact",
+        "title": "Where to Find Us",
+        "contactPerson": "Ogaba Ene Excel, Project Coordinator",
+        "addresses": [],
+        "note": "Federal Capital Territory (Abuja), including Kwali Area Council.",
+        "phones": ["08115469241"],
+        "emails": [],
+        "social": [],
+        "pending": "Email to be added."
+      }
+    ]
+  }
+]
