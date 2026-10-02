@@ -110,6 +110,26 @@ _CEREMONIAL_ARMOR_DIRECTIVE = (
     "natural light, never an illustrated, painted, cartoon or CG-render look."
 )
 
+# ── Male / default subjects ──────────────────────────────────────────────
+# A tester noticed a floating cape/cloak/duster on a male generation even
+# where the scene text didn't ask for one outright (commanding-the-storm's
+# coat and eagle-wings' overlayer were the literal culprits, fixed in
+# scene_prompts.py) — this is the belt-and-suspenders guard against Gemini
+# adding one anyway. Applied whenever the subject is not female.
+_MALE_NO_CAPE_DIRECTIVE = (
+    "WARDROBE — no cape, cloak or duster (hard requirement): do not dress him in a separate "
+    "flowing cape, cloak, hooded mantle, or long duster-style coat that hangs loose and open "
+    "from the shoulders behind him. Any coat or outer layer described above is worn properly "
+    "fitted through the body and shoulders, not billowing open like a cape, and must not read "
+    "as a distinct garment floating or trailing behind or above him. Any sense of wind or "
+    "motion belongs to the wings, his hair, and the hem or sleeves of his actual shirt or "
+    "coat — never to an added cape-like layer. This is about his own clothing only: it does "
+    "not apply to a separate falling or descending supernatural mantle, fire or light that a "
+    "scene's own description calls for as a divine effect, and it does not apply to the "
+    "ceremonial armor tabard in the armor scenes, which is a fixed single front panel, not a "
+    "cape."
+)
+
 # ── Female subjects ────────────────────────────────────────────────────────
 # When the subject is a woman, trousers read poorly, so the scene's shirt-and-
 # trousers wardrobe is re-cut as a modest, free-flowing full-length gown in the
@@ -265,6 +285,9 @@ def build_prompt(
         parts.append(_CEREMONIAL_ARMOR_DIRECTIVE)
     elif scene_id in _UNTUCKED_SHIRT_SCENES:
         parts.append(_UNTUCKED_SHIRT_DIRECTIVE)
+
+    if not is_female:
+        parts.append(_MALE_NO_CAPE_DIRECTIVE)
 
     if custom_prompt:
         custom = custom_prompt.strip()

@@ -61,9 +61,10 @@ commanding a raging storm to stop. He stands at the bow of a battered wooden shi
 violently churning sea, both arms raised and spread to each side in a wide commanding posture,
 looking upward into the heart of the storm with calm, absolute authority. He is dressed in a
 modern storm-white ensemble: an off-white long-sleeved shirt with the sleeves worn down and
-unfolded, fully and properly buttoned and left untucked, beneath a long, unlined ivory coat
-that snaps and streams sideways in the gale, loose, free-cut dark trousers (not tight or slim)
-and boots planted on the soaked deck—contemporary cut, no robes; massive white wings
+unfolded, fully and properly buttoned and left untucked, its hem and sleeves pressed flat and
+whipping against him in the gale, loose, free-cut dark trousers (not tight or slim)
+and boots planted on the soaked deck—contemporary cut, no robes, no cape, cloak or duster-style
+coat billowing behind him; massive white wings
 spread to full span, each feather straining against the gale but unbroken. Directly before
 him, the storm clouds are splitting open—a dramatic rent in the sky with brilliant golden
 light flooding through the gap—while the sea directly beneath him begins to still in a
@@ -193,9 +194,9 @@ supernatural figure ascending into the sky. He is mid-ascent—feet just clearin
 ridge below, body rising—looking downward and outward with peaceful, sovereign confidence,
 arms slightly open, a posture between surrender and authority. He is dressed in clean modern
 white—a white long-sleeved shirt with the sleeves worn down and unfolded, fully and properly
-buttoned and left untucked, over loose, free-cut white trousers (not tight or slim), with a
-long, lightweight ivory overlayer that trails and ripples below him, its edges snapping in the
-updraft; light, aerodynamic, contemporary tailoring rather than robes; his large white wings are in full
+buttoned and left untucked, its hem and sleeves pressed against him by the updraft, over loose,
+free-cut white trousers (not tight or slim); light, aerodynamic, contemporary tailoring rather
+than robes, no cape or trailing overlayer; his large white wings are in full
 upstroke—massive, powerful, each feather under maximum tension, the translucent edges of
 outermost feathers lit against the sky above, individual barbs visible in razor detail.
 Above him, the sky opens into brilliant golden-white light at high altitude, breaking through
@@ -205,7 +206,7 @@ cinematic—primary light from the sun above creating top lighting with strong s
 scattering on upturned face and raised hands, warm rim light on the underside of wings from
 the sunlit earth below, a deep gradient sky from warm gold above to atmospheric blue-grey
 at distance below. Realistic atmospheric perspective, physically accurate light scattering on
-feathers, motion visible in trailing fabric. Eagle gold and deep sky blue color grading with
+feathers, motion visible in the wind-pressed shirt and trousers. Eagle gold and deep sky blue color grading with
 brilliant solar gold at the apex. Soaring, free, biblical scale.""",
 
     "army-of-angels": """A photorealistic fantasy realism close full-body shot of a supernatural archangel warrior
@@ -256,10 +257,10 @@ SCENE_WARDROBE_RULES: dict[str, str] = {
         "heavily printed or heavily ornamented clothing is not"
     ),
     "commanding-the-storm": (
-        "the outfit must be white, off-white or ivory, and must include at least one long, "
-        "loose layer the gale can catch and stream sideways. Any garment type is fine as long "
-        "as it is that colour and has fabric for the wind to move; dark or busily patterned "
-        "clothing is not"
+        "the outfit must be white, off-white or ivory, with the gale showing in the garment's "
+        "own hem, sleeves or trouser leg rather than in a separate cape, cloak or duster-style "
+        "coat added on top. Any garment type is fine in that colour; dark or busily patterned "
+        "clothing is not, and neither is a separate flowing cape or coat"
     ),
     "defeating-giants": (
         "the outfit must remain battle armor in white and gold. Its cut, cultural style and "
@@ -287,9 +288,10 @@ SCENE_WARDROBE_RULES: dict[str, str] = {
         "fine within that; everyday casual clothing is not"
     ),
     "eagle-wings": (
-        "the outfit must be white or ivory, light and aerodynamic, and must include at least "
-        "one loose layer that trails and ripples below in the updraft. Heavy, bulky or dark "
-        "clothing is not"
+        "the outfit must be white or ivory, light and aerodynamic, with the updraft showing in "
+        "the garment's own hem and sleeves rather than in a separate trailing cape, cloak or "
+        "coat. Heavy, bulky or dark clothing is not, and neither is an added floating cape-like "
+        "layer"
     ),
     "army-of-angels": (
         "the outfit must remain battle armor in polished gold over white. Its cut and "
