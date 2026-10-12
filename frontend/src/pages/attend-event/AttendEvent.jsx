@@ -30,7 +30,8 @@ function PersonCard({ person, day, onChange }) {
 
   const numberOk = unverified || phone.replace(/\D/g, '').length >= 4
   const ready = numberOk && (person.first_timer || firstTimer !== null)
-  const time = person.attended[day]
+  // cell holds e.g. "🚶🏽‍♂️: 12:54 ✅" — show just the time
+  const time = (person.attended[day] || '').match(/\d{1,2}:\d{2}/)?.[0] || person.attended[day]
 
   return (
     <li className={`rounded-2xl border p-4 ${person.checked_in ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200 bg-white shadow-sm'}`}>

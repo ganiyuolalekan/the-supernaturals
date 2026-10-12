@@ -8,8 +8,8 @@ it and writes four extra columns back into it:
 
     attend_friday | attend_saturday | attend_sunday | first_timer
 
-An attend_* cell holds the check-in time ("2026-10-16 09:42"); empty means not
-arrived. first_timer holds "Yes" or is empty.
+An attend_* cell holds a readable check-in stamp such as "🚶🏽‍♂️: 09:42 ✅" (the
+walker matches the person's gender); empty means not arrived. first_timer holds "Yes" or is empty.
 
 How it talks to the sheet
 -------------------------
@@ -41,6 +41,7 @@ import re
 import time
 import unicodedata
 from collections import Counter
+from datetime import datetime
 
 import httpx
 from fastapi import APIRouter, HTTPException, Query
@@ -375,7 +376,7 @@ def compute_stats(rows: list[dict], day: str | None = None) -> dict:
     by_hour: Counter = Counter()
     if day:
         for r in attended:
-            m = re.match(r"\d{4}-\d{2}-\d{2} (\d{2}):\d{2}", r[ATTEND_COLS[day]])
+            m = re.search(r"(\d{1,2}):\d{2}", r[ATTEND_COLS[day]])
             if m:
                 by_hour[int(m.group(1))] += 1
 
@@ -462,7 +463,7 @@ async def check_in(body: CheckIn):
                    "That number doesn't match the one on the sheet. Ask them again, "
                    "or check in without number confirmation if they can't recall it.")
 
-    updates = {ATTEND_COLS[day]: time_now()}
+    updates = {ATTEND_COLS[day]: checkin_label(rec["gender"])}
     if body.first_timer is not None:
         updates[FIRST_TIMER_COL] = "Yes" if body.first_timer else ""
     store = get_store()
@@ -540,6 +541,13 @@ async def stats(day: str | None = Query(default=None)):
     return {"success": True, **compute_stats(await _rows(force=True), day)}
 
 
-def time_now() -> str:
-    from datetime import datetime
-    return datetime.now(app_timezone()).strftime("%Y-%m-%d %H:%M")
+_WALKER = "\U0001F6B6\U0001F3FD"  # 🚶🏽
+_WALKERS = {"male": _WALKER + "\u200d\u2642\ufe0f", "female": _WALKER + "\u200d\u2640\ufe0f"}
+
+
+def checkin_label(gender: str, now: datetime | None = None) -> str:
+    """What goes in an attend_* cell: "🚶🏽‍♂️: 09:42 ✅". The walker follows the
+    person's gender; anything unrecognised gets the neutral one."""
+    now = now or datetime.now(app_timezone())
+    walker = _WALKERS.get((gender or "").strip().lower(), _WALKER)
+    return f"{walker}: {now.strftime('%H:%M')} ✅"
