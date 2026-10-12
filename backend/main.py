@@ -15,6 +15,7 @@ log = logging.getLogger(__name__)
 import usage_tracker
 import availability
 import vault
+import attendance
 from validator import validate_image
 from gemini_client import (
     generate_supernatural_image,
@@ -39,6 +40,7 @@ load_dotenv()
 register_configured_keys()
 
 app = FastAPI(title="I Am Supernatural — The SuperNaturals")
+app.include_router(attendance.router)
 
 # CORS
 _cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000")

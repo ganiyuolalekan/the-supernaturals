@@ -8,6 +8,9 @@ import App from './App.jsx'
 const PAGES = {
   '/about-conference': lazy(() => import('./pages/about-conference/AboutConference.jsx')),
   '/our-sponsors': lazy(() => import('./pages/our-sponsors/OurSponsors.jsx')),
+  '/attend_event': lazy(() => import('./pages/attend-event/AttendEvent.jsx')),
+  '/attend_event/first_timers': lazy(() => import('./pages/attend-event/FirstTimers.jsx')),
+  '/attend_event/chart': lazy(() => import('./pages/attend-event/Chart.jsx')),
 }
 const Page = PAGES[window.location.pathname.replace(/\/+$/, '')]
 

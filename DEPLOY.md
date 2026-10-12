@@ -186,3 +186,25 @@ Go back to Render → Environment → update `CORS_ORIGINS` to your exact Vercel
 | "high demand" errors under light load | `MAX_QUEUE_DEPTH` too low, or Gemini calls are slow/timing out | Check Render logs for the actual Gemini latency; raise `MAX_QUEUE_DEPTH` if the instance can handle it |
 | Rate limit not resetting daily | Supabase `rate_limits` row stuck | Check the `day` column matches today's date in Supabase; delete the row to reset manually |
 | Cold start timeout | Free Render tier | Upgrade to Starter or warm the service with a cron ping |
+
+---
+
+## Event-day attendance (`/attend_event`)
+
+Pages (no login — share the link only with the right people): `/attend_event` (check-in), `/attend_event/first_timers`, `/attend_event/chart`.
+The registration sheet is the system of record; the app adds `attend_friday`, `attend_saturday`, `attend_sunday`
+and `first_timer` columns to it automatically on first use.
+
+A sheet shared as "anyone with the link can edit" can't be written to by a server, so writes go through an
+Apps Script web app bound to the sheet:
+
+1. Open the registration sheet → **Extensions → Apps Script**. Paste `backend/apps_script/Attendance.gs` over `Code.gs`.
+2. **Project Settings → Script properties** → add `ATTENDANCE_SECRET` = a long random string.
+3. **Deploy → New deployment → Web app** · Execute as **Me** · Who has access **Anyone**. Authorise when asked. Copy the `/exec` URL.
+4. Set on the backend (Render):
+   - `ATTENDANCE_SCRIPT_URL` = that `/exec` URL
+   - `ATTENDANCE_SCRIPT_SECRET` = the same secret
+5. After editing the script later, re-deploy via **Manage deployments → edit → New version**.
+
+Without step 4 the `/attend` routes return 503.
+Local try-out without touching the live sheet: set `ATTENDANCE_DEMO=true` and `ATTENDANCE_SHEET_ID` (in-memory only).
