@@ -56,9 +56,10 @@ ATTEND_COLS = {d: f"attend_{d}" for d in DAYS}
 NEW_COLS = (*ATTEND_COLS.values(), FIRST_TIMER_COL)
 
 # "RCCG Praise Assembly", "Praise assembly", "Praiseassembly", "RCCG, Praise
-# Assembly Parish" … A bare "RCCG" is deliberately NOT a match — that is any
-# of thousands of other parishes.
-HOME_CHURCH_RE = re.compile(r"praise\s*[-_.]?\s*assembly", re.IGNORECASE)
+# Assembly Parish", plus the typos people actually typed ("Praise Asssembly",
+# "Praises assembly", "Praise Assemble", "Rccg praise ass"). A bare "RCCG" is
+# deliberately NOT a match — that is any of thousands of other parishes.
+HOME_CHURCH_RE = re.compile(r"pra[iy]s\w*\s*[-_.]?\s*as+\w*", re.IGNORECASE)
 
 CACHE_TTL_SECONDS = 5
 _FALSY = {"", "no", "false", "0", "n", "-"}

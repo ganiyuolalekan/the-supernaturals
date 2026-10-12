@@ -31,28 +31,28 @@ function PersonCard({ person, day, onChange }) {
   const time = person.attended[day]
 
   return (
-    <li className={`rounded-2xl border p-4 ${person.checked_in ? 'border-emerald-600/60 bg-emerald-950/30' : 'border-slate-700/70 bg-cosmic-800/70'}`}>
+    <li className={`rounded-2xl border p-4 ${person.checked_in ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200 bg-white shadow-sm'}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-semibold text-white break-words">{person.name}</p>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="font-semibold text-slate-900 break-words">{person.name}</p>
+          <p className="text-xs text-slate-500 mt-0.5">
             {[person.gender, person.age_group].filter(Boolean).join(' · ')}
           </p>
           <p className="text-xs mt-1">
-            <span className={person.home_church ? 'text-divine-400 font-semibold' : 'text-slate-300'}>
+            <span className={person.home_church ? 'text-amber-700 font-semibold' : 'text-slate-600'}>
               {person.home_church ? '★ ' : ''}{person.church || 'No church given'}
             </span>
           </p>
         </div>
-        <p className="font-mono text-sm text-slate-300 shrink-0">{person.phone_masked || 'no number'}</p>
+        <p className="font-mono text-sm text-slate-600 shrink-0">{person.phone_masked || 'no number'}</p>
       </div>
 
       {person.checked_in ? (
         <div className="mt-3 flex items-center justify-between gap-3">
-          <p className="text-sm text-emerald-400 font-semibold">
+          <p className="text-sm text-emerald-700 font-semibold">
             ✓ Registered {time}{person.first_timer ? ' · First-timer' : ''}
           </p>
-          <button onClick={undo} disabled={busy} className="text-xs text-slate-400 underline disabled:opacity-50">
+          <button onClick={undo} disabled={busy} className="text-xs text-slate-500 underline disabled:opacity-50">
             Undo
           </button>
         </div>
@@ -62,26 +62,26 @@ function PersonCard({ person, day, onChange }) {
             <input
               type="tel" inputMode="numeric" value={phone} onChange={(e) => setPhone(e.target.value)}
               placeholder="Their number (or last 4 digits)"
-              className="w-full px-3 py-2.5 bg-cosmic-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:border-divine-500"
+              className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-divine-500"
             />
           )}
-          <label className="flex items-center gap-2 text-sm text-slate-200">
+          <label className="flex items-center gap-2 text-sm text-slate-700">
             <input
               type="checkbox" checked={firstTimer} onChange={(e) => setFirstTimer(e.target.checked)}
               className="h-5 w-5 accent-amber-400"
             />
             First time at IGC?
           </label>
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex items-center gap-3">
             <button
               onClick={checkIn} disabled={busy || !ready}
-              className="flex-1 py-3 bg-divine-500 hover:bg-divine-400 disabled:bg-slate-700 disabled:text-slate-400 text-cosmic-950 font-bold text-sm rounded-xl"
+              className="flex-1 py-3 bg-divine-500 hover:bg-divine-400 disabled:bg-slate-200 disabled:text-slate-500 text-cosmic-950 font-bold text-sm rounded-xl"
             >
               {busy ? 'Saving…' : 'Mark as registered'}
             </button>
             {person.phone_on_file && (
-              <button onClick={() => setUnverified((v) => !v)} className="text-xs text-slate-400 underline w-28 text-left">
+              <button onClick={() => setUnverified((v) => !v)} className="text-xs text-slate-500 underline w-28 text-left">
                 {unverified ? 'Verify number' : "Can't verify number"}
               </button>
             )}
@@ -134,7 +134,7 @@ function AttendEventBody() {
           <button
             key={d.id} onClick={() => setDay(d.id)}
             className={`flex-1 py-2.5 rounded-xl text-sm font-bold border ${
-              day === d.id ? 'bg-divine-500 text-cosmic-950 border-divine-500' : 'bg-cosmic-800 text-slate-300 border-slate-700'
+              day === d.id ? 'bg-divine-500 text-cosmic-950 border-divine-500' : 'bg-white text-slate-600 border-slate-300'
             }`}
           >
             {d.label}
@@ -142,21 +142,21 @@ function AttendEventBody() {
         ))}
       </div>
 
-      <p className="text-xs text-slate-400 mt-3">
+      <p className="text-xs text-slate-500 mt-3">
         {counts.registered === null ? 'Loading…' : (
-          <><span className="text-white font-semibold">{counts.day_checked_in}</span> registered on {DAYS.find((d) => d.id === day).label} · {counts.registered} on the list</>
+          <><span className="text-slate-900 font-semibold">{counts.day_checked_in}</span> registered on {DAYS.find((d) => d.id === day).label} · {counts.registered} on the list</>
         )}
       </p>
 
       <input
         type="search" autoFocus value={q} onChange={(e) => setQ(e.target.value)}
         placeholder="Search name or phone…"
-        className="mt-3 w-full px-4 py-3.5 bg-cosmic-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-divine-500 focus:ring-1 focus:ring-divine-500"
+        className="mt-3 w-full px-4 py-3.5 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-divine-500 focus:ring-1 focus:ring-divine-500"
       />
 
-      {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+      {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
       {!error && q.trim().length >= 2 && settled === `${day}|${q}` && results.length === 0 && (
-        <p className="mt-6 text-center text-slate-400 text-sm">No one found. Try fewer letters, or the phone number.</p>
+        <p className="mt-6 text-center text-slate-500 text-sm">No one found. Try fewer letters, or the phone number.</p>
       )}
 
       <ul className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 items-start">
