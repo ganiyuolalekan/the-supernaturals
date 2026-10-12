@@ -4,7 +4,8 @@ import { DAYS, call, defaultDay, errorMessage } from './api'
 
 function PersonCard({ person, day, onChange }) {
   const [phone, setPhone] = useState('')
-  const [firstTimer, setFirstTimer] = useState(person.first_timer)
+  // null = the agent hasn't asked yet; never defaulted, so it can't be sent by accident
+  const [firstTimer, setFirstTimer] = useState(null)
   const [unverified, setUnverified] = useState(!person.phone_on_file)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
@@ -17,7 +18,7 @@ function PersonCard({ person, day, onChange }) {
 
   const checkIn = () => run(async () => {
     const res = await call('post', '/check-in', {
-      data: { row: person.row, day, phone, unverified, first_timer: firstTimer },
+      data: { row: person.row, day, phone, unverified, first_timer: person.first_timer ? null : firstTimer },
     })
     onChange(res.person)
   })
@@ -27,7 +28,8 @@ function PersonCard({ person, day, onChange }) {
     onChange(res.person)
   })
 
-  const ready = unverified || phone.replace(/\D/g, '').length >= 4
+  const numberOk = unverified || phone.replace(/\D/g, '').length >= 4
+  const ready = numberOk && (person.first_timer || firstTimer !== null)
   const time = person.attended[day]
 
   return (
@@ -65,13 +67,26 @@ function PersonCard({ person, day, onChange }) {
               className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-divine-500"
             />
           )}
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input
-              type="checkbox" checked={firstTimer} onChange={(e) => setFirstTimer(e.target.checked)}
-              className="h-5 w-5 accent-amber-400"
-            />
-            First time at IGC?
-          </label>
+          {person.first_timer ? (
+            <p className="text-xs text-slate-500">Already marked as a first-timer on an earlier day.</p>
+          ) : (
+            <div>
+              <p className="text-sm text-slate-700 mb-1.5">Is this their first time at IGC?</p>
+              <div className="flex gap-2">
+                {[{ v: true, label: 'Yes, first time' }, { v: false, label: 'No, returning' }].map((o) => (
+                  <button
+                    key={String(o.v)} type="button" onClick={() => setFirstTimer(o.v)}
+                    className={`flex-1 py-2 rounded-xl text-sm font-semibold border ${
+                      firstTimer === o.v
+                        ? 'bg-amber-100 border-amber-500 text-amber-800'
+                        : 'bg-white border-slate-300 text-slate-600'}`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex items-center gap-3">
             <button
@@ -97,6 +112,7 @@ function AttendEventBody() {
   const [q, setQ] = useState('')
   const [results, setResults] = useState([])
   const [counts, setCounts] = useState({ day_checked_in: null, registered: null })
+  const [demo, setDemo] = useState(false)
   const [error, setError] = useState(null)
   const [settled, setSettled] = useState('')   // the query the shown results belong to
   const seq = useRef(0)
@@ -108,6 +124,7 @@ function AttendEventBody() {
         if (mine !== seq.current) return
         setResults(res.results)
         setCounts({ day_checked_in: res.day_checked_in, registered: res.registered })
+        setDemo(!!res.demo)
         setSettled(`${d}|${query}`)
         setError(null)
       })
@@ -129,6 +146,11 @@ function AttendEventBody() {
 
   return (
     <>
+      {demo && (
+        <p className="mb-3 rounded-xl border border-amber-400 bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
+          <b>Demo mode</b> — check-ins are kept in memory only and are <b>not</b> being written to the Google Sheet.
+        </p>
+      )}
       <div className="flex gap-2">
         {DAYS.map((d) => (
           <button

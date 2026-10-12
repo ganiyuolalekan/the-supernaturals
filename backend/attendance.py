@@ -440,6 +440,7 @@ async def search(day: str = Query(...), q: str = Query(default="", max_length=80
         "results": [public_person(r, day) for r in results],
         "day_checked_in": sum(_attended(r[ATTEND_COLS[day]]) for r in rows),
         "registered": len(rows),
+        "demo": isinstance(get_store(), DemoStore),
     }
 
 
@@ -492,8 +493,16 @@ class Undo(BaseModel):
 async def undo(body: Undo):
     day = _day(body.day)
     rec = _find(await _rows(), body.row)
+    updates = {ATTEND_COLS[day]: ""}
+    still_attending = any(
+        _attended(rec[ATTEND_COLS[d]]) for d in DAYS if d != day
+    )
+    if not still_attending:
+        # Fully un-registered: don't leave a stale first-timer flag behind to
+        # be re-sent (or pre-ticked) when they are registered again.
+        updates[FIRST_TIMER_COL] = ""
     try:
-        await get_store().write(rec["row"], rec["name"], rec["phone"], {ATTEND_COLS[day]: ""})
+        await get_store().write(rec["row"], rec["name"], rec["phone"], updates)
     except SheetError as exc:
         raise _err(409 if exc.code == "row_changed" else 502, exc.code, exc.message)
     _invalidate()
