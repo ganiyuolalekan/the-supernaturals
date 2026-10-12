@@ -9,7 +9,8 @@ it and writes four extra columns back into it:
     attend_friday | attend_saturday | attend_sunday | first_timer
 
 An attend_* cell holds a readable check-in stamp such as "🚶🏽‍♂️: 09:42 ✅" (the
-walker matches the person's gender); empty means not arrived. first_timer holds "Yes" or is empty.
+walker matches the person's gender); empty means not arrived. first_timer holds "Yes" or "No" once the agent has answered, and is empty only
+until then (or after a full undo).
 
 How it talks to the sheet
 -------------------------
@@ -574,14 +575,14 @@ async def check_in(body: CheckIn):
 
     updates = {ATTEND_COLS[day]: checkin_label(rec["gender"])}
     if body.first_timer is not None:
-        updates[FIRST_TIMER_COL] = "Yes" if body.first_timer else ""
+        updates[FIRST_TIMER_COL] = "Yes" if body.first_timer else "No"
     result = await _write(rec, updates, only_if_empty=ATTEND_COLS[day])
 
     if result.get("already") and body.first_timer is not None \
             and body.first_timer != _attended(rec[FIRST_TIMER_COL]):
         # Another agent got there first and kept their time; still honour the
         # first-timer answer given on this device.
-        await _write(rec, {FIRST_TIMER_COL: "Yes" if body.first_timer else ""})
+        await _write(rec, {FIRST_TIMER_COL: "Yes" if body.first_timer else "No"})
 
     return {"success": True, "already": bool(result.get("already")),
             "person": public_person(rec, day), "day_checked_in": _day_count(rows, day)}
@@ -614,7 +615,7 @@ class FirstTimer(BaseModel):
 @router.post("/first-timer")
 async def toggle_first_timer(body: FirstTimer):
     rec = _find(await _rows(), body.row)
-    await _write(rec, {FIRST_TIMER_COL: "Yes" if body.value else ""})
+    await _write(rec, {FIRST_TIMER_COL: "Yes" if body.value else "No"})
     return {"success": True, "person": public_person(rec)}
 
 
@@ -663,7 +664,7 @@ async def walk_in(body: WalkIn):
         "age_group": body.age_group, "church": body.church.strip(),
         "source": WALK_IN_SOURCE,
         ATTEND_COLS[day]: checkin_label(body.gender, now),
-        FIRST_TIMER_COL: "Yes" if body.first_timer else "",
+        FIRST_TIMER_COL: "Yes" if body.first_timer else "No",
     }
     try:
         row = await get_store().append(cells)
