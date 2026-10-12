@@ -41,6 +41,7 @@ register_configured_keys()
 
 app = FastAPI(title="I Am Supernatural — The SuperNaturals")
 app.include_router(attendance.router)
+app.router.add_event_handler("startup", attendance.warm)
 
 # CORS
 _cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000")

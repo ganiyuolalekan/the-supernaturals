@@ -25,6 +25,11 @@ For local development, ATTENDANCE_DEMO=true with ATTENDANCE_SHEET_ID reads the
 sheet's public CSV export and keeps check-ins in memory — it never writes to
 the live sheet.
 
+Speed: every call to Apps Script costs 2-4 s even when it does nothing, so the
+backend never makes an agent wait on one if it can avoid it. Rows live in an
+in-memory snapshot; reads are served from it and refreshed in the background,
+and writes patch the snapshot directly instead of re-reading the sheet.
+
 Privacy: there is no login — the link is meant to be shared only with the
 right people. Search results only ever carry a masked phone number; the full
 number is compared server-side against what the agent typed. Only the
@@ -62,7 +67,10 @@ NEW_COLS = (*ATTEND_COLS.values(), FIRST_TIMER_COL)
 # deliberately NOT a match — that is any of thousands of other parishes.
 HOME_CHURCH_RE = re.compile(r"pra[iy]s\w*\s*[-_.]?\s*as+\w*", re.IGNORECASE)
 
-CACHE_TTL_SECONDS = 5
+CACHE_TTL_SECONDS = 8      # snapshot older than this is refreshed in the background
+GENDERS = ("Male", "Female")
+AGE_GROUPS = ("Youth (13-17)", "Young Adult (18-35)", "Adult (35+)")
+WALK_IN_SOURCE = "Walk-in"  # shows up under "How they heard" so walk-ins are countable
 _FALSY = {"", "no", "false", "0", "n", "-"}
 
 
@@ -148,6 +156,9 @@ class AppsScriptStore:
             ) from exc
         if not data.get("ok"):
             code = data.get("error", "sheet_error")
+            if code == "bad_action":
+                raise SheetError(code, "The sheet script is out of date — redeploy "
+                                       "Attendance.gs as a new version (see DEPLOY.md).")
             raise SheetError(code, data.get("message") or f"Sheet rejected the request ({code}).")
         return data
 
@@ -162,6 +173,11 @@ class AppsScriptStore:
             "expect_name": expect_name, "expect_phone": expect_phone,
             "updates": updates, "only_if_empty": only_if_empty,
         })
+
+
+    async def append(self, cells: dict[str, str]) -> int:
+        data = await self._call({"action": "append", "cells": cells})
+        return int(data["row"])
 
 
 class DemoStore:
@@ -192,6 +208,16 @@ class DemoStore:
         return {"ok": True, "already": False}
 
 
+    async def append(self, cells: dict[str, str]) -> int:
+        await self.list_rows()
+        row = max([r["row"] for r in self._rows] + [1]) + 1
+        rec = {"row": row, **{k: "" for k in ("timestamp", "name", "phone", "gender", "age_group",
+                                              "church", "transport", "area", "source", *NEW_COLS)}}
+        rec.update(cells)
+        self._rows.append(rec)
+        return row
+
+
 _store = None
 _store_key = None
 
@@ -216,38 +242,86 @@ def get_store():
 
 class _Cache:
     def __init__(self):
-        self.rows: list[dict] = []
+        self.rows: list[dict] | None = None   # None = never loaded
         self.at = 0.0
-        self.store_id = None
+        self.store = None
+        self.version = 0                       # bumped by every local write
+        self.task: asyncio.Task | None = None  # in-flight background refresh
         self.lock = asyncio.Lock()
 
 
 _cache = _Cache()
 
 
+def _not_configured() -> HTTPException:
+    return HTTPException(503, detail={
+        "success": False, "error": "not_configured",
+        "message": "Attendance isn't connected to the sheet yet (see DEPLOY.md).",
+    })
+
+
+async def _fetch(store) -> None:
+    """Read the sheet into the snapshot. If a local write landed while we were
+    reading, this read may predate it, so discard it rather than undo the write."""
+    started = _cache.version
+    rows = await store.list_rows()
+    if started != _cache.version:
+        return
+    _cache.rows, _cache.at, _cache.store = rows, time.monotonic(), store
+
+
+async def _refresh_in_background(store) -> None:
+    try:
+        await _fetch(store)
+    except Exception as exc:  # keep serving the last snapshot
+        log.warning("Background sheet refresh failed: %s", exc)
+
+
 async def _rows(force: bool = False) -> list[dict]:
+    """The rows, fast. Only the very first read (or force=True) waits on Google;
+    otherwise a stale snapshot is returned at once and refreshed behind it."""
     store = get_store()
     if store is None:
-        raise HTTPException(503, detail={
-            "success": False, "error": "not_configured",
-            "message": "Attendance isn't connected to the sheet yet (see DEPLOY.md).",
-        })
-    async with _cache.lock:
-        fresh = (time.monotonic() - _cache.at) < CACHE_TTL_SECONDS
-        if force or not fresh or _cache.store_id is not store:
-            try:
-                _cache.rows = await store.list_rows()
-            except SheetError as exc:
-                raise HTTPException(502, detail={
-                    "success": False, "error": exc.code, "message": exc.message,
-                })
-            _cache.at = time.monotonic()
-            _cache.store_id = store
+        raise _not_configured()
+
+    if _cache.rows is None or _cache.store is not store or force:
+        async with _cache.lock:
+            if _cache.rows is None or _cache.store is not store or force:
+                try:
+                    await _fetch(store)
+                except SheetError as exc:
+                    raise HTTPException(502, detail={
+                        "success": False, "error": exc.code, "message": exc.message})
+        if _cache.rows is None:  # a write raced the very first load
+            raise HTTPException(503, detail={"success": False, "error": "busy",
+                                             "message": "Loading — try again in a moment."})
         return _cache.rows
 
+    stale = (time.monotonic() - _cache.at) > CACHE_TTL_SECONDS
+    if stale and (_cache.task is None or _cache.task.done()):
+        _cache.task = asyncio.create_task(_refresh_in_background(store))
+    return _cache.rows
 
-def _invalidate() -> None:
+
+def _patch(rec: dict, updates: dict) -> None:
+    """Apply a confirmed write to the snapshot so reads see it immediately."""
+    rec.update(updates)
+    _cache.version += 1
+
+
+def _distrust_snapshot() -> None:
     _cache.at = 0.0
+    _cache.version += 1
+
+
+async def warm() -> None:
+    """Load the snapshot at startup so the first agent doesn't wait for Google."""
+    if get_store() is None:
+        return
+    try:
+        await _rows()
+    except Exception as exc:
+        log.warning("Attendance warm-up failed: %s", exc)
 
 
 # ---------------------------------------------------------------------------
@@ -288,6 +362,18 @@ def _norm(s: str) -> str:
     s = unicodedata.normalize("NFKD", s or "")
     s = "".join(c for c in s if not unicodedata.combining(c))
     return re.sub(r"\s+", " ", s.lower()).strip()
+
+
+_WALKER = "\U0001F6B6\U0001F3FD"  # 🚶🏽
+_WALKERS = {"male": _WALKER + "\u200d\u2642\ufe0f", "female": _WALKER + "\u200d\u2640\ufe0f"}
+
+
+def checkin_label(gender: str, now: datetime | None = None) -> str:
+    """What goes in an attend_* cell: "🚶🏽‍♂️: 09:42 ✅". The walker follows the
+    person's gender; anything unrecognised gets the neutral one."""
+    now = now or datetime.now(app_timezone())
+    walker = _WALKERS.get((gender or "").strip().lower(), _WALKER)
+    return f"{walker}: {now.strftime('%H:%M')} ✅"
 
 
 def whatsapp_link(phone: str) -> str | None:
@@ -431,6 +517,27 @@ def _find(rows: list[dict], row: int) -> dict:
     return rec
 
 
+def _day_count(rows: list[dict], day: str) -> int:
+    return sum(_attended(r[ATTEND_COLS[day]]) for r in rows)
+
+
+async def _write(rec: dict, updates: dict, only_if_empty: str | None = None) -> dict:
+    """One call to the sheet, then patch the snapshot. Errors become HTTP errors."""
+    try:
+        result = await get_store().write(rec["row"], rec["name"], rec["phone"], updates,
+                                         only_if_empty=only_if_empty)
+    except SheetError as exc:
+        if exc.code == "row_changed":
+            _distrust_snapshot()
+            raise _err(409, exc.code, exc.message)
+        raise _err(502, exc.code, exc.message)
+    if result.get("already"):
+        _patch(rec, {only_if_empty: result.get("current", rec.get(only_if_empty, ""))})
+    else:
+        _patch(rec, updates)
+    return result
+
+
 @router.get("/search")
 async def search(day: str = Query(...), q: str = Query(default="", max_length=80)):
     day = _day(day)
@@ -439,7 +546,7 @@ async def search(day: str = Query(...), q: str = Query(default="", max_length=80
     return {
         "success": True,
         "results": [public_person(r, day) for r in results],
-        "day_checked_in": sum(_attended(r[ATTEND_COLS[day]]) for r in rows),
+        "day_checked_in": _day_count(rows, day),
         "registered": len(rows),
         "demo": isinstance(get_store(), DemoStore),
     }
@@ -448,41 +555,36 @@ async def search(day: str = Query(...), q: str = Query(default="", max_length=80
 class CheckIn(BaseModel):
     row: int
     day: str
-    phone: str = Field(default="", max_length=40)
-    unverified: bool = False          # agent couldn't confirm the number
-    first_timer: bool | None = None   # None = leave as is
+    phone: str = Field(default="", max_length=40)  # optional; checked only if given
+    first_timer: bool | None = None                # None = leave as is
 
 
 @router.post("/check-in")
 async def check_in(body: CheckIn):
     day = _day(body.day)
-    rec = _find(await _rows(), body.row)
+    rows = await _rows()
+    rec = _find(rows, body.row)
 
-    if not body.unverified and not phone_matches(rec["phone"], body.phone):
+    # The number is an optional extra check: leave it blank and the name alone
+    # is enough. If the agent did type one, it has to be right.
+    if body.phone.strip() and not phone_matches(rec["phone"], body.phone):
         raise _err(422, "phone_mismatch",
-                   "That number doesn't match the one on the sheet. Ask them again, "
-                   "or check in without number confirmation if they can't recall it.")
+                   "That number doesn't match the one on the sheet. Ask again, "
+                   "or clear the box to register by name.")
 
     updates = {ATTEND_COLS[day]: checkin_label(rec["gender"])}
     if body.first_timer is not None:
         updates[FIRST_TIMER_COL] = "Yes" if body.first_timer else ""
-    store = get_store()
-    try:
-        result = await store.write(rec["row"], rec["name"], rec["phone"], updates,
-                                   only_if_empty=ATTEND_COLS[day])
-    except SheetError as exc:
-        raise _err(409 if exc.code == "row_changed" else 502, exc.code, exc.message)
-    _invalidate()
+    result = await _write(rec, updates, only_if_empty=ATTEND_COLS[day])
 
-    rec = _find(await _rows(force=True), body.row)
-    person = public_person(rec, day)
-    if result.get("already"):
-        # Another agent got there first — keep their time, but still honour a
-        # first-timer tick the agent set on this device.
-        if body.first_timer is not None and body.first_timer != person["first_timer"]:
-            await toggle_first_timer(FirstTimer(row=body.row, value=body.first_timer))
-            person = public_person(_find(await _rows(force=True), body.row), day)
-    return {"success": True, "already": bool(result.get("already")), "person": person}
+    if result.get("already") and body.first_timer is not None \
+            and body.first_timer != _attended(rec[FIRST_TIMER_COL]):
+        # Another agent got there first and kept their time; still honour the
+        # first-timer answer given on this device.
+        await _write(rec, {FIRST_TIMER_COL: "Yes" if body.first_timer else ""})
+
+    return {"success": True, "already": bool(result.get("already")),
+            "person": public_person(rec, day), "day_checked_in": _day_count(rows, day)}
 
 
 class Undo(BaseModel):
@@ -493,21 +595,15 @@ class Undo(BaseModel):
 @router.post("/undo")
 async def undo(body: Undo):
     day = _day(body.day)
-    rec = _find(await _rows(), body.row)
+    rows = await _rows()
+    rec = _find(rows, body.row)
     updates = {ATTEND_COLS[day]: ""}
-    still_attending = any(
-        _attended(rec[ATTEND_COLS[d]]) for d in DAYS if d != day
-    )
-    if not still_attending:
-        # Fully un-registered: don't leave a stale first-timer flag behind to
-        # be re-sent (or pre-ticked) when they are registered again.
+    if not any(_attended(rec[ATTEND_COLS[d]]) for d in DAYS if d != day):
+        # Fully un-registered: don't leave a stale first-timer flag behind.
         updates[FIRST_TIMER_COL] = ""
-    try:
-        await get_store().write(rec["row"], rec["name"], rec["phone"], updates)
-    except SheetError as exc:
-        raise _err(409 if exc.code == "row_changed" else 502, exc.code, exc.message)
-    _invalidate()
-    return {"success": True, "person": public_person(_find(await _rows(force=True), body.row), day)}
+    await _write(rec, updates)
+    return {"success": True, "person": public_person(rec, day),
+            "day_checked_in": _day_count(rows, day)}
 
 
 class FirstTimer(BaseModel):
@@ -518,18 +614,74 @@ class FirstTimer(BaseModel):
 @router.post("/first-timer")
 async def toggle_first_timer(body: FirstTimer):
     rec = _find(await _rows(), body.row)
+    await _write(rec, {FIRST_TIMER_COL: "Yes" if body.value else ""})
+    return {"success": True, "person": public_person(rec)}
+
+
+class WalkIn(BaseModel):
+    day: str
+    name: str = Field(min_length=2, max_length=80)
+    phone: str = Field(max_length=40)
+    gender: str
+    age_group: str = Field(default="", max_length=60)
+    church: str = Field(default="", max_length=120)
+    first_timer: bool
+
+
+@router.post("/walk-in")
+async def walk_in(body: WalkIn):
+    """Register someone who is not on the sheet: append a row (flagged
+    "Walk-in") and mark them present for the day in the same write."""
+    day = _day(body.day)
+    name = re.sub(r"\s+", " ", body.name).strip()
+    if len(name) < 2:
+        raise _err(422, "invalid_name", "Enter the person's name.")
+    if body.gender not in GENDERS:
+        raise _err(422, "invalid_gender", "Pick Male or Female.")
+    if body.age_group and body.age_group not in AGE_GROUPS:
+        raise _err(422, "invalid_age_group", "Pick an age group from the list.")
+    phone = body.phone.strip()
+    if len(_digits(phone)) < 7:
+        # Required for walk-ins: there is no sheet entry to fall back on, and
+        # the number is how first-timers get followed up afterwards.
+        raise _err(422, "invalid_phone", "Enter the person's phone number (at least 7 digits).")
+
+    rows = await _rows()
+    twin = next((r for r in rows if _norm(r["name"]) == _norm(name)
+                 and (not phone or not _digits(r["phone"]) or phone_matches(r["phone"], phone))), None)
+    if twin:
+        raise HTTPException(409, detail={
+            "success": False, "error": "already_on_list",
+            "message": f"{twin['name']} is already on the list — search for them instead.",
+            "person": public_person(twin, day)})
+
+    now = datetime.now(app_timezone())
+    cells = {
+        # Same shape the Google Form writes, so the column stays consistent.
+        "timestamp": f"{now.month}/{now.day}/{now.year} {now:%H:%M:%S}",
+        "name": name, "phone": phone, "gender": body.gender,
+        "age_group": body.age_group, "church": body.church.strip(),
+        "source": WALK_IN_SOURCE,
+        ATTEND_COLS[day]: checkin_label(body.gender, now),
+        FIRST_TIMER_COL: "Yes" if body.first_timer else "",
+    }
     try:
-        await get_store().write(rec["row"], rec["name"], rec["phone"],
-                                {FIRST_TIMER_COL: "Yes" if body.value else ""})
+        row = await get_store().append(cells)
     except SheetError as exc:
-        raise _err(409 if exc.code == "row_changed" else 502, exc.code, exc.message)
-    _invalidate()
-    return {"success": True, "person": public_person(_find(await _rows(force=True), body.row))}
+        raise _err(502, exc.code, exc.message)
+
+    rec = {"row": row, **{k: "" for k in ("timestamp", "name", "phone", "gender", "age_group",
+                                          "church", "transport", "area", "source", *NEW_COLS)}}
+    rec.update(cells)
+    rows.append(rec)
+    _cache.version += 1
+    return {"success": True, "person": public_person(rec, day),
+            "day_checked_in": _day_count(rows, day), "registered": len(rows)}
 
 
 @router.get("/first-timers")
 async def first_timers():
-    rows = await _rows(force=True)
+    rows = await _rows()
     people = [public_person(r, full_phone=True) for r in rows if _attended(r[FIRST_TIMER_COL])]
     people.sort(key=lambda p: p["name"].lower())
     return {"success": True, "people": people}
@@ -538,16 +690,4 @@ async def first_timers():
 @router.get("/stats")
 async def stats(day: str | None = Query(default=None)):
     day = _day(day) if day and day != "all" else None
-    return {"success": True, **compute_stats(await _rows(force=True), day)}
-
-
-_WALKER = "\U0001F6B6\U0001F3FD"  # 🚶🏽
-_WALKERS = {"male": _WALKER + "\u200d\u2642\ufe0f", "female": _WALKER + "\u200d\u2640\ufe0f"}
-
-
-def checkin_label(gender: str, now: datetime | None = None) -> str:
-    """What goes in an attend_* cell: "🚶🏽‍♂️: 09:42 ✅". The walker follows the
-    person's gender; anything unrecognised gets the neutral one."""
-    now = now or datetime.now(app_timezone())
-    walker = _WALKERS.get((gender or "").strip().lower(), _WALKER)
-    return f"{walker}: {now.strftime('%H:%M')} ✅"
+    return {"success": True, **compute_stats(await _rows(), day)}

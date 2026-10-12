@@ -204,7 +204,9 @@ Apps Script web app bound to the sheet:
 4. Set on the backend (Render):
    - `ATTENDANCE_SCRIPT_URL` = that `/exec` URL
    - `ATTENDANCE_SCRIPT_SECRET` = the same secret
-5. After editing the script later, re-deploy via **Manage deployments → edit → New version**.
+5. After editing the script later, re-deploy via **Manage deployments → edit → New version** — the
+   `/exec` URL keeps serving the *old* code until you do. The walk-in button needs the version that has
+   the `append` action; check-ins and search work with older versions.
 
 Without step 4 the `/attend` routes return 503.
 Local try-out without touching the live sheet: set `ATTENDANCE_DEMO=true` and `ATTENDANCE_SHEET_ID` (in-memory only).

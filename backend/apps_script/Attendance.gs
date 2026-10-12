@@ -9,6 +9,7 @@
  *
  *   list   → header row + every response row
  *   write  → set attend_* / first_timer cells on one row (with safety checks)
+ *   append → add a new row (a walk-in who never registered through the Form)
  *
  * Setup (once) — see DEPLOY.md:
  *   1. In the sheet: Extensions → Apps Script. Paste this file over Code.gs.
@@ -18,7 +19,8 @@
  *      Copy the /exec URL.
  *   4. Put the URL and the same secret into the backend env
  *      (ATTENDANCE_SCRIPT_URL, ATTENDANCE_SCRIPT_SECRET).
- *   Re-deploy ("Manage deployments" → edit → new version) after editing this file.
+ *   Re-deploy ("Manage deployments" → edit → new version) after editing this file —
+ *   the live URL keeps serving the OLD code until you do.
  */
 
 // Leave blank to use the first tab (where the Form writes responses).
@@ -36,9 +38,10 @@ function doPost(e) {
     lock.waitLock(20000);
     try {
       var sheet = sheet_();
-      ensureColumns_(sheet);
-      if (body.action === 'list') return reply_(list_(sheet));
-      if (body.action === 'write') return reply_(write_(sheet, body));
+      var headers = ensureColumns_(sheet);
+      if (body.action === 'list') return reply_(list_(sheet, headers));
+      if (body.action === 'write') return reply_(write_(sheet, headers, body));
+      if (body.action === 'append') return reply_(append_(sheet, headers, body));
       return reply_({ ok: false, error: 'bad_action' });
     } finally {
       lock.releaseLock();
@@ -63,9 +66,14 @@ function headers_(sheet) {
   return sheet.getRange(1, 1, 1, n).getDisplayValues()[0];
 }
 
-/** Adds any missing attend_* / first_timer header to the right of the form columns. */
+/**
+ * Adds any missing attend_* / first_timer header to the right of the form columns.
+ * Returns the display headers (read once per request, passed to the actions).
+ */
 function ensureColumns_(sheet) {
-  var have = headers_(sheet).map(function (h) { return String(h).trim().toLowerCase(); });
+  var raw = headers_(sheet);
+  var have = raw.map(function (h) { return String(h).trim().toLowerCase(); });
+  var added = false;
   NEW_COLUMNS.forEach(function (name) {
     if (have.indexOf(name) !== -1) return;
     var col = sheet.getLastColumn() + 1;
@@ -73,38 +81,43 @@ function ensureColumns_(sheet) {
     // Plain text so "2026-10-16 09:42" is kept as typed, not turned into a date.
     sheet.getRange(2, col, Math.max(sheet.getMaxRows() - 1, 1), 1).setNumberFormat('@');
     have.push(name);
+    raw.push(name);
+    added = true;
   });
+  return raw;
 }
 
-function list_(sheet) {
+function list_(sheet, headers) {
   var lastRow = sheet.getLastRow();
-  var lastCol = sheet.getLastColumn();
+  var lastCol = headers.length;
   var rows = lastRow > 1 ? sheet.getRange(2, 1, lastRow - 1, lastCol).getDisplayValues() : [];
-  return { ok: true, headers: headers_(sheet), first_row: 2, rows: rows };
+  return { ok: true, headers: headers, first_row: 2, rows: rows };
 }
 
-function write_(sheet, body) {
+function write_(sheet, rawHeaders, body) {
   var row = Number(body.row);
   if (!row || row < 2 || row > sheet.getLastRow()) return { ok: false, error: 'row_changed', message: 'Row no longer exists — search again.' };
 
-  var headers = headers_(sheet).map(function (h) { return String(h).trim().toLowerCase(); });
-  var nameCol = headers.findIndex(function (h) { return h.indexOf('full name') === 0 || h === 'name'; }) + 1;
-  var phoneCol = headers.findIndex(function (h) { return h.indexOf('phone') === 0; }) + 1;
-  if (!nameCol) return { ok: false, error: 'script_error', message: 'No "Full Name" column found.' };
+  var headers = rawHeaders.map(function (h) { return String(h).trim().toLowerCase(); });
+  var nameCol = headers.findIndex(function (h) { return h.indexOf('full name') === 0 || h === 'name'; });
+  var phoneCol = headers.findIndex(function (h) { return h.indexOf('phone') === 0; });
+  if (nameCol < 0) return { ok: false, error: 'script_error', message: 'No "Full Name" column found.' };
+
+  // One read for the whole row (each separate read is a slow round trip).
+  var cells = sheet.getRange(row, 1, 1, headers.length).getDisplayValues()[0];
 
   // The row number came from an earlier read. If rows were sorted, inserted or
   // deleted since, refuse rather than tick the wrong person.
-  var name = String(sheet.getRange(row, nameCol).getDisplayValue()).trim();
-  var phone = phoneCol ? String(sheet.getRange(row, phoneCol).getDisplayValue()).trim() : '';
-  if (name !== body.expect_name || (phoneCol && phone !== body.expect_phone)) {
+  var name = String(cells[nameCol]).trim();
+  var phone = phoneCol >= 0 ? String(cells[phoneCol]).trim() : '';
+  if (name !== body.expect_name || (phoneCol >= 0 && phone !== body.expect_phone)) {
     return { ok: false, error: 'row_changed', message: 'The sheet changed since you searched — search again.' };
   }
 
   var updates = body.updates || {};
   var guard = body.only_if_empty;
   if (guard && NEW_COLUMNS.indexOf(guard) !== -1) {
-    var gcol = headers.indexOf(guard) + 1;
-    var current = String(sheet.getRange(row, gcol).getDisplayValue()).trim();
+    var current = String(cells[headers.indexOf(guard)] || '').trim();
     if (current) return { ok: true, already: true, current: current };
   }
 
@@ -114,4 +127,40 @@ function write_(sheet, body) {
     if (col) sheet.getRange(row, col).setNumberFormat('@').setValue(String(updates[key]));
   });
   return { ok: true, already: false };
+}
+
+/** Which logical field a header holds — mirrors _canon() in backend/attendance.py. */
+function canon_(header) {
+  var h = String(header).trim().toLowerCase();
+  if (NEW_COLUMNS.indexOf(h) !== -1) return h;
+  if (h.indexOf('timestamp') === 0) return 'timestamp';
+  if (h.indexOf('full name') === 0 || h === 'name') return 'name';
+  if (h.indexOf('phone') === 0) return 'phone';
+  if (h.indexOf('gender') === 0) return 'gender';
+  if (h.indexOf('age group') === 0) return 'age_group';
+  if (h.indexOf('church') === 0) return 'church';
+  if (h.indexOf('transport') !== -1) return 'transport';
+  if (h.indexOf('joining us from') !== -1) return 'area';
+  if (h.indexOf('hear about') !== -1) return 'source';
+  return null;
+}
+
+/**
+ * Adds a row for a walk-in. `cells` is keyed by logical field (name, phone,
+ * gender, … attend_friday, first_timer); anything not given stays blank.
+ */
+function append_(sheet, rawHeaders, body) {
+  var cells = body.cells || {};
+  if (!String(cells.name || '').trim()) return { ok: false, error: 'bad_request', message: 'A name is required.' };
+  var row = sheet.getLastRow() + 1;
+  rawHeaders.forEach(function (h, i) {
+    var key = canon_(h);
+    if (!key || !(key in cells)) return;
+    var range = sheet.getRange(row, i + 1);
+    // Phones keep their leading 0; our stamps stay as typed. The timestamp is
+    // left alone so Sheets parses it exactly as it does for a Form response.
+    if (key === 'phone' || NEW_COLUMNS.indexOf(key) !== -1) range.setNumberFormat('@');
+    range.setValue(String(cells[key]));
+  });
+  return { ok: true, row: row };
 }
