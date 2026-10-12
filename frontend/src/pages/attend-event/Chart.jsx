@@ -73,8 +73,8 @@ function ChartBody() {
       {!s && !error && <p className="mt-4 text-slate-400 text-sm">Loading…</p>}
 
       {s && (
-        <div className="mt-4 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3 items-start">
+          <div className="grid grid-cols-2 gap-3 md:col-span-2 xl:col-span-3 xl:grid-cols-4">
             <Kpi label={day === 'all' ? 'Attended (any day)' : 'Attended'} value={s.attended}
               sub={`${pct(s.attended, s.registered)}% of ${s.registered} registered`} />
             <Kpi label="First-timers" value={s.first_timers} sub={`${pct(s.first_timers, s.attended)}% of attendees`} />

@@ -56,7 +56,7 @@ function FirstTimersBody() {
           {people.length === 0 && (
             <p className="mt-6 text-center text-slate-400 text-sm">No first-timers ticked yet. They appear here as agents tick the box at the door.</p>
           )}
-          <ul className="mt-4 space-y-3">
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 items-start">
             {shown.map((p) => (
               <li key={p.row} className="rounded-2xl border border-slate-700/70 bg-cosmic-800/70 p-4">
                 <div className="flex items-start justify-between gap-3">

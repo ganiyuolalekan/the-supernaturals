@@ -12,7 +12,7 @@ export default function Shell({ title, children }) {
   return (
     <div className="min-h-dvh bg-cosmic-950 bg-stars">
       <header className="sticky top-0 z-10 bg-cosmic-950/90 backdrop-blur border-b border-slate-800">
-        <div className="max-w-3xl mx-auto px-4 pt-3">
+        <div className="w-full px-4 sm:px-8 pt-3">
           <p className="text-divine-500 text-[10px] tracking-widest uppercase font-semibold">IGC 2026 · Attendance</p>
           <h1 className="font-display text-xl font-bold text-white">{title}</h1>
           <nav className="flex gap-1 mt-2 -mb-px">
@@ -29,7 +29,7 @@ export default function Shell({ title, children }) {
           </nav>
         </div>
       </header>
-      <main className="max-w-3xl mx-auto px-4 py-5">{children}</main>
+      <main className="w-full px-4 sm:px-8 py-5">{children}</main>
     </div>
   )
 }

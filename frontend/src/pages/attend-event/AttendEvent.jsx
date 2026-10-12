@@ -159,7 +159,7 @@ function AttendEventBody() {
         <p className="mt-6 text-center text-slate-400 text-sm">No one found. Try fewer letters, or the phone number.</p>
       )}
 
-      <ul className="mt-4 space-y-3">
+      <ul className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 items-start">
         {results.map((p) => (
           <PersonCard key={`${p.row}-${day}-${p.checked_in}`} person={p} day={day} onChange={replace} />
         ))}
