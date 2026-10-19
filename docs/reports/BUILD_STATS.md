@@ -35,7 +35,7 @@ Everything measurable about the 2026 campaign in one place. Detail lives in the 
 | 12 Oct | `/attend_event` check-in, first-timers list and attendance chart; walk-ins; faster reads |
 
 Commits per month: July 10, August 13, October 10 (September had none; generation ran on the deployed build).
-The full original build is preserved at git tag `event-2026-final`.
+The full original build is preserved at git tag `event-2026-final`, and the original poster app at `event-2026-minister-poster`.
 
 ## Size of the code at the event tag
 
@@ -51,7 +51,7 @@ The full original build is preserved at git tag `event-2026-final`.
 | Workflow YAML | 1 | 33 |
 
 79 tracked files in total. The twin app, [`minister-poster/`](../../minister-poster/), was about 2,900 lines
-(1,885 Python, 834 JSX, 173 JS) across 20 source files. It was never under version control, so it has no commit history.
+(1,885 Python, 834 JSX, 173 JS) across 20 source files. It was never under version control, so it has no commit history; its original source is archived at tag `event-2026-minister-poster`.
 
 ## What was built
 

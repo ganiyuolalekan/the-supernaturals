@@ -72,8 +72,13 @@ images/              gallery of generated portraits
 .github/workflows/   optional keep-warm ping for a free Render backend
 ```
 
-The untouched 2026 build, with all event content, is preserved at git tag
-[`event-2026-final`](../../tree/event-2026-final) (`git checkout event-2026-final`).
+The untouched 2026 builds, with all event content, are preserved as git tags:
+
+- [`event-2026-final`](../../tree/event-2026-final): the portrait app and event pages exactly as they ran
+- [`event-2026-minister-poster`](../../tree/event-2026-minister-poster): the same, plus the original announcement-poster app
+  (with its 14 real style prompts) in `minister-confirmed-2026/`
+
+Use `git checkout <tag>` to browse either.
 
 ## Use it as a template
 

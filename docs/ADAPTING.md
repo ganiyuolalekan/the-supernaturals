@@ -79,4 +79,4 @@ unknown paths to `index.html`, which the page routes need.
 - Names inherited from the original build: the `ministers` / `previous` keys in the event JSON mean "speakers" / "past guests";
   the poster app's database columns still say `minister_*`.
 - The attendance feature assumes a three-day, Friday to Sunday event.
-- `scene_prompts.py` ships with two example scenes only. Prompts that worked for the 2026 theme are at tag `event-2026-final`.
+- `scene_prompts.py` ships with two example scenes only. Prompts that worked for the 2026 theme are at tag `event-2026-final`; the poster app's original 14 styles are at `event-2026-minister-poster`.
