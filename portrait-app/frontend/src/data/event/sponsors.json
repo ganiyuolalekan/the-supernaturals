@@ -1,0 +1,160 @@
+[
+  {
+    "slug": "sponsor-1",
+    "name": "Sponsor 1 Ltd.",
+    "regNo": null,
+    "tagline": "One line on what they do.",
+    "quote": null,
+    "logo": null,
+    "heroImage": null,
+    "images": [
+      {
+        "caption": "Photo 1",
+        "image": null
+      },
+      {
+        "caption": "Photo 2",
+        "image": null
+      },
+      {
+        "caption": "Photo 3",
+        "image": null
+      }
+    ],
+    "slides": [
+      {
+        "type": "cover"
+      },
+      {
+        "type": "content",
+        "title": "Who We Are",
+        "paragraphs": [
+          "A short paragraph about the sponsor."
+        ]
+      },
+      {
+        "type": "content",
+        "title": "Vision & Mission",
+        "pairs": [
+          {
+            "label": "Vision",
+            "text": "Their vision."
+          },
+          {
+            "label": "Mission",
+            "text": "Their mission."
+          }
+        ]
+      },
+      {
+        "type": "content",
+        "title": "Products & Services",
+        "chips": [
+          "Service one",
+          "Service two",
+          "Service three"
+        ]
+      },
+      {
+        "type": "images",
+        "title": "Gallery"
+      },
+      {
+        "type": "contact",
+        "title": "Where to Find Us",
+        "addresses": [
+          "Street, City"
+        ],
+        "note": null,
+        "phones": [
+          "0000 000 0000"
+        ],
+        "emails": [
+          "hello@example.com"
+        ],
+        "social": [
+          "@sponsor"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "sponsor-2",
+    "name": "Sponsor 2 Ltd.",
+    "regNo": null,
+    "tagline": "One line on what they do.",
+    "quote": null,
+    "logo": null,
+    "heroImage": null,
+    "images": [
+      {
+        "caption": "Photo 1",
+        "image": null
+      },
+      {
+        "caption": "Photo 2",
+        "image": null
+      },
+      {
+        "caption": "Photo 3",
+        "image": null
+      }
+    ],
+    "slides": [
+      {
+        "type": "cover"
+      },
+      {
+        "type": "content",
+        "title": "Who We Are",
+        "paragraphs": [
+          "A short paragraph about the sponsor."
+        ]
+      },
+      {
+        "type": "content",
+        "title": "Vision & Mission",
+        "pairs": [
+          {
+            "label": "Vision",
+            "text": "Their vision."
+          },
+          {
+            "label": "Mission",
+            "text": "Their mission."
+          }
+        ]
+      },
+      {
+        "type": "content",
+        "title": "Products & Services",
+        "chips": [
+          "Service one",
+          "Service two",
+          "Service three"
+        ]
+      },
+      {
+        "type": "images",
+        "title": "Gallery"
+      },
+      {
+        "type": "contact",
+        "title": "Where to Find Us",
+        "addresses": [
+          "Street, City"
+        ],
+        "note": null,
+        "phones": [
+          "0000 000 0000"
+        ],
+        "emails": [
+          "hello@example.com"
+        ],
+        "social": [
+          "@sponsor"
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,41 @@
+[
+  {
+    "slug": "speaker-1",
+    "name": "Speaker Name 1",
+    "role": "Title, Organisation",
+    "image": null,
+    "bio": "Two or three sentences about this speaker: who they are, what they do and what they are known for.",
+    "emphasis": [
+      "Topic one",
+      "Topic two",
+      "Topic three"
+    ],
+    "atEvent": "One or two sentences on what this speaker will do at the event."
+  },
+  {
+    "slug": "speaker-2",
+    "name": "Speaker Name 2",
+    "role": "Title, Organisation",
+    "image": null,
+    "bio": "Two or three sentences about this speaker: who they are, what they do and what they are known for.",
+    "emphasis": [
+      "Topic one",
+      "Topic two",
+      "Topic three"
+    ],
+    "atEvent": "One or two sentences on what this speaker will do at the event."
+  },
+  {
+    "slug": "speaker-3",
+    "name": "Speaker Name 3",
+    "role": "Title, Organisation",
+    "image": null,
+    "bio": "Two or three sentences about this speaker: who they are, what they do and what they are known for.",
+    "emphasis": [
+      "Topic one",
+      "Topic two",
+      "Topic three"
+    ],
+    "atEvent": "One or two sentences on what this speaker will do at the event."
+  }
+]

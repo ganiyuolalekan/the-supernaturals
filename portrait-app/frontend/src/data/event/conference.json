@@ -1,0 +1,242 @@
+{
+  "meta": {
+    "title": "Your Event 2027",
+    "description": "Your Event 2027: one sentence for search results and link previews.",
+    "lang": "en"
+  },
+  "event": {
+    "name": "Your Event 2027",
+    "fullName": "The Full Name of Your Event",
+    "edition": "1st Edition",
+    "theme": "Your Theme",
+    "motto": "Your motto or verse",
+    "dateShort": "Fri 1 – Sun 3 January 2027",
+    "dateLong": "Friday 1 – Sunday 3 January 2027",
+    "venue": {
+      "name": "Venue Name",
+      "place": "Street, City",
+      "landmark": "Near a well-known landmark"
+    },
+    "host": "Your Organisation, the community behind the event",
+    "hostName": "Your Organisation",
+    "transport": "Tell people how to get there.",
+    "transportShort": "Transport info",
+    "phone": "0000 000 0000",
+    "registerUrl": null,
+    "logos": {
+      "primary": {
+        "label": "LOGO",
+        "alt": "Primary logo",
+        "image": null
+      },
+      "secondary": {
+        "label": "LOGO",
+        "alt": "Secondary logo",
+        "image": null
+      }
+    },
+    "social": {
+      "handle": "@yourevent",
+      "tiktokUrl": "https://www.tiktok.com/@yourevent",
+      "instagramUrl": "https://www.instagram.com/yourevent",
+      "youtube": "Your Event",
+      "youtubeUrl": null,
+      "facebook": "Your Event",
+      "facebookUrl": null,
+      "whatsappUrl": null
+    }
+  },
+  "hero": {
+    "collage": [
+      {
+        "label": "Hero photo 1",
+        "alt": "Describe the photo for screen readers",
+        "image": null
+      },
+      {
+        "label": "Hero photo 2",
+        "alt": "Describe the photo for screen readers",
+        "image": null
+      },
+      {
+        "label": "Hero photo 3",
+        "alt": "Describe the photo for screen readers",
+        "image": null
+      },
+      {
+        "label": "Hero photo 4",
+        "alt": "Describe the photo for screen readers",
+        "image": null
+      }
+    ]
+  },
+  "about": {
+    "heading": "About the Event",
+    "paragraphs": [
+      "Two or three sentences on what the event is, who it is for and why it exists. Use **double asterisks** for bold.",
+      "A second paragraph for the theme or this year's focus: **“Your Theme”**."
+    ],
+    "photos": [
+      {
+        "label": "Event photo 1",
+        "alt": "Describe the photo for screen readers",
+        "image": null
+      },
+      {
+        "label": "Event photo 2",
+        "alt": "Describe the photo for screen readers",
+        "image": null
+      },
+      {
+        "label": "Event photo 3",
+        "alt": "Describe the photo for screen readers",
+        "image": null
+      },
+      {
+        "label": "Event photo 4",
+        "alt": "Describe the photo for screen readers",
+        "image": null
+      }
+    ]
+  },
+  "story": {
+    "heading": "Who We Are",
+    "paragraphs": [
+      "Who is behind the event? A short paragraph on the organisation or community.",
+      "A second paragraph for history, milestones or a rename. Remove the transition chips in this section's component if you do not need them."
+    ],
+    "transition": {
+      "from": "Old Name",
+      "to": "New Name"
+    },
+    "quote": {
+      "text": "A line that captures your purpose.",
+      "source": "Who said it"
+    },
+    "mission": {
+      "label": "Our mission",
+      "text": "One sentence on what you exist to do."
+    }
+  },
+  "journey": {
+    "heading": "Our Journey",
+    "intro": "One sentence introducing the timeline below.",
+    "photo": {
+      "label": "Crowd photo",
+      "alt": "Describe the photo for screen readers",
+      "image": null
+    },
+    "steps": [
+      {
+        "title": "Step One",
+        "text": "What happened in this season, in two or three sentences."
+      },
+      {
+        "title": "Step Two",
+        "text": "What happened in this season, in two or three sentences."
+      },
+      {
+        "title": "Step Three",
+        "text": "What happened in this season, in two or three sentences."
+      },
+      {
+        "title": "Step Four",
+        "text": "What happened in this season, in two or three sentences."
+      },
+      {
+        "title": "This Year",
+        "text": "Where the story is now. The step marked current shows a 'Now' badge.",
+        "current": true
+      }
+    ]
+  },
+  "previous": {
+    "heading": "Past Guests",
+    "intro": "A short paragraph honouring the people who spoke at or supported earlier editions.",
+    "groups": [
+      {
+        "number": "01",
+        "name": "Group One",
+        "people": [
+          "Person One",
+          "Person Two"
+        ]
+      },
+      {
+        "number": "02",
+        "name": "Group Two",
+        "people": [
+          "Person Three",
+          "Person Four"
+        ]
+      },
+      {
+        "number": "03",
+        "name": "Group Three",
+        "people": [
+          "Person Five",
+          "and many more"
+        ]
+      }
+    ],
+    "closing": "A closing line of thanks.",
+    "photos": [
+      {
+        "label": "Past event photo 1",
+        "alt": "Describe the photo for screen readers",
+        "image": null
+      },
+      {
+        "label": "Past event photo 2",
+        "alt": "Describe the photo for screen readers",
+        "image": null
+      },
+      {
+        "label": "Past event photo 3",
+        "alt": "Describe the photo for screen readers",
+        "image": null
+      },
+      {
+        "label": "Past event photo 4",
+        "alt": "Describe the photo for screen readers",
+        "image": null
+      }
+    ]
+  },
+  "ministersSection": {
+    "heading": "Guest Speakers 2027",
+    "intro": "Tap a speaker to read more."
+  },
+  "sponsorsSection": {
+    "heading": "Made possible by our partners.",
+    "intro": "Tap a partner to see who they are and how to reach them.",
+    "cta": "Want to partner with us? Reach out on any of our platforms · @yourevent"
+  },
+  "visit": {
+    "heading": "Plan Your Visit",
+    "days": [
+      {
+        "label": "Day One",
+        "date": "Fri 1 Jan"
+      },
+      {
+        "label": "Day Two",
+        "date": "Sat 2 Jan"
+      },
+      {
+        "label": "Day Three",
+        "date": "Sun 3 Jan"
+      }
+    ],
+    "venuePhoto": {
+      "label": "Venue photo or map",
+      "alt": "Venue name and city",
+      "image": null
+    },
+    "qr": {
+      "label": "Registration QR code",
+      "image": "/registration_qr.png"
+    },
+    "closingLine": "Your Event 2027 · Your Theme"
+  }
+}

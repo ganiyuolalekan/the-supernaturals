@@ -1,11 +1,13 @@
 name: Keep Render backend warm
 
-# Pings the backend's /health endpoint every 7 minutes, 8am-8pm WAT
-# (07:00-18:50 UTC), Saturday through Friday (every day) — the app's
-# active window. Outside this window the backend is free to spin down
-# on Render's free tier; real user traffic wakes it on demand as usual,
-# and it also resets Render's own idle timer, so this ping never
-# fights with real usage.
+# OPTIONAL. Pings your backend's /health endpoint every 7 minutes, 07:00-18:50 UTC,
+# so a free-tier Render instance is not asleep when visitors arrive. Edit the cron
+# window to match when your audience is awake.
+#
+# It does nothing until you add a repository variable named BACKEND_URL
+# (Settings -> Secrets and variables -> Actions -> Variables), e.g.
+#   https://your-backend.onrender.com
+# Delete this file if you host the backend somewhere that does not sleep.
 on:
   schedule:
     - cron: "*/7 7-18 * * *"
@@ -13,17 +15,17 @@ on:
 
 jobs:
   ping:
+    if: ${{ vars.BACKEND_URL != '' }}
     runs-on: ubuntu-latest
     steps:
       - name: Ping backend health endpoint
-        # A single request can hit Render mid cold-start and get 0 bytes back
-        # well before the free-tier instance (0.1 CPU) finishes booting the
-        # Python process. Retry a few times with a generous per-attempt
-        # timeout so the first ping of the day — which is the one that
-        # actually has to wake the instance — doesn't fail the job.
+        # A request can hit Render mid cold-start and get nothing back before the
+        # free instance finishes booting, so retry with a generous timeout.
+        env:
+          BACKEND_URL: ${{ vars.BACKEND_URL }}
         run: |
           for attempt in 1 2 3 4; do
-            if curl -fsS --max-time 60 https://the-supernaturals.onrender.com/health; then
+            if curl -fsS --max-time 60 "$BACKEND_URL/health"; then
               exit 0
             fi
             echo "Attempt $attempt failed, retrying in 15s..."

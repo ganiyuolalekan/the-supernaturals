@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+  body {
+    @apply bg-cosmic-950 text-white antialiased;
+    min-height: 100dvh;
+  }
+}
+
+@layer utilities {
+  .glow-gold {
+    box-shadow: 0 0 20px rgba(245, 200, 66, 0.4), 0 0 60px rgba(245, 200, 66, 0.15);
+  }
+  .glow-gold-sm {
+    box-shadow: 0 0 8px rgba(245, 200, 66, 0.5);
+  }
+  .text-glow {
+    text-shadow: 0 0 20px rgba(245, 200, 66, 0.6);
+  }
+  .bg-stars {
+    background-image:
+      radial-gradient(ellipse at 20% 50%, rgba(30, 10, 80, 0.5) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(10, 20, 80, 0.4) 0%, transparent 60%);
+  }
+  /* Transfer-announcement energy: bright top border on cards */
+  .card-signed {
+    border-top: 3px solid #f5c842;
+  }
+  .confirmed-stamp {
+    letter-spacing: 0.12em;
+    text-shadow: 0 0 16px rgba(245, 200, 66, 0.7), 0 2px 4px rgba(0,0,0,0.8);
+  }
+}

@@ -1,0 +1,39 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./index.html', './src/**/*.{js,jsx,ts,tsx}'],
+  theme: {
+    extend: {
+      colors: {
+        cosmic: {
+          950: '#03060f',
+          900: '#050a1a',
+          800: '#080f28',
+          700: '#0d1840',
+        },
+        divine: {
+          400: '#fde68a',
+          500: '#f5c842',
+          600: '#d4a017',
+        },
+        confirm: {
+          red: '#c0392b',
+        },
+      },
+      fontFamily: {
+        display: ['Georgia', 'serif'],
+        mono: ['ui-monospace', 'monospace'],
+      },
+      animation: {
+        'pulse-slow':  'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'spin-slow':   'spin 3s linear infinite',
+        'fade-in':     'fadeIn 0.6s ease forwards',
+        'slide-up':    'slideUp 0.5s ease forwards',
+      },
+      keyframes: {
+        fadeIn:  { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+        slideUp: { '0%': { opacity: '0', transform: 'translateY(16px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+      },
+    },
+  },
+  plugins: [],
+}

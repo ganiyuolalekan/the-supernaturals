@@ -1,0 +1,156 @@
+{
+  "meta": {
+    "title": "Our Sponsors · Your Event 2027",
+    "description": "Meet the partners behind Your Event 2027.",
+    "lang": "en"
+  },
+  "brand": "Your Event 2027",
+  "footer": "© 2027 Your Organisation · @yourevent",
+  "intro": {
+    "eyebrow": "Your Event 2027",
+    "title": "Our Sponsors",
+    "lead": "The businesses and organisations standing with us to make the event possible."
+  },
+  "sponsors": [
+    {
+      "slug": "sponsor-1",
+      "short": "Sponsor 1",
+      "name": "Sponsor 1 Ltd.",
+      "regNo": null,
+      "tagline": "One line on what they do.",
+      "quote": null,
+      "logo": null,
+      "banner": null,
+      "bannerAlt": "Describe the banner image",
+      "about": "A short paragraph on what the sponsor does. Anything you leave out of this file is simply not shown on the page.",
+      "blocks": [
+        {
+          "type": "pairs",
+          "items": [
+            {
+              "label": "Vision",
+              "text": "Their vision."
+            },
+            {
+              "label": "Mission",
+              "text": "Their mission."
+            }
+          ]
+        },
+        {
+          "type": "chips",
+          "title": "Products and services",
+          "items": [
+            "Service one",
+            "Service two",
+            "Service three"
+          ]
+        },
+        {
+          "type": "cards",
+          "title": "Partners",
+          "items": [
+            {
+              "title": "Partner one",
+              "text": "What they do."
+            },
+            {
+              "title": "Partner two",
+              "text": "What they do."
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "title": "Approach",
+          "text": "How they work, in a sentence or two."
+        }
+      ],
+      "find": {
+        "locations": [
+          "Street, City"
+        ],
+        "note": "Optional note, e.g. coverage area.",
+        "phones": [
+          "0000 000 0000"
+        ],
+        "emails": [
+          "hello@example.com"
+        ],
+        "social": [
+          "@sponsor"
+        ]
+      }
+    },
+    {
+      "slug": "sponsor-2",
+      "short": "Sponsor 2",
+      "name": "Sponsor 2 Ltd.",
+      "regNo": null,
+      "tagline": "One line on what they do.",
+      "quote": null,
+      "logo": null,
+      "banner": null,
+      "bannerAlt": "Describe the banner image",
+      "about": "A short paragraph on what the sponsor does. Anything you leave out of this file is simply not shown on the page.",
+      "blocks": [
+        {
+          "type": "pairs",
+          "items": [
+            {
+              "label": "Vision",
+              "text": "Their vision."
+            },
+            {
+              "label": "Mission",
+              "text": "Their mission."
+            }
+          ]
+        },
+        {
+          "type": "chips",
+          "title": "Products and services",
+          "items": [
+            "Service one",
+            "Service two",
+            "Service three"
+          ]
+        },
+        {
+          "type": "cards",
+          "title": "Partners",
+          "items": [
+            {
+              "title": "Partner one",
+              "text": "What they do."
+            },
+            {
+              "title": "Partner two",
+              "text": "What they do."
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "title": "Approach",
+          "text": "How they work, in a sentence or two."
+        }
+      ],
+      "find": {
+        "locations": [
+          "Street, City"
+        ],
+        "note": "Optional note, e.g. coverage area.",
+        "phones": [
+          "0000 000 0000"
+        ],
+        "emails": [
+          "hello@example.com"
+        ],
+        "social": [
+          "@sponsor"
+        ]
+      }
+    }
+  ]
+}
